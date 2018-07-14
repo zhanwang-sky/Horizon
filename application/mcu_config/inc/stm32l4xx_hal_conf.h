@@ -51,53 +51,53 @@
   * @brief This is the list of modules to be used in the HAL driver
   */
 #define HAL_MODULE_ENABLED
-#define HAL_ADC_MODULE_ENABLED
-#define HAL_CAN_MODULE_ENABLED
+//#define HAL_ADC_MODULE_ENABLED
+//#define HAL_CAN_MODULE_ENABLED
 /* #define HAL_CAN_LEGACY_MODULE_ENABLED */
-#define HAL_COMP_MODULE_ENABLED
+//#define HAL_COMP_MODULE_ENABLED
 #define HAL_CORTEX_MODULE_ENABLED
-#define HAL_CRC_MODULE_ENABLED
-#define HAL_CRYP_MODULE_ENABLED
-#define HAL_DAC_MODULE_ENABLED
-#define HAL_DCMI_MODULE_ENABLED
-#define HAL_DFSDM_MODULE_ENABLED
+//#define HAL_CRC_MODULE_ENABLED
+//#define HAL_CRYP_MODULE_ENABLED
+//#define HAL_DAC_MODULE_ENABLED
+//#define HAL_DCMI_MODULE_ENABLED
+//#define HAL_DFSDM_MODULE_ENABLED
 #define HAL_DMA_MODULE_ENABLED
-#define HAL_DMA2D_MODULE_ENABLED
-#define HAL_DSI_MODULE_ENABLED
-#define HAL_FIREWALL_MODULE_ENABLED
+//#define HAL_DMA2D_MODULE_ENABLED
+//#define HAL_DSI_MODULE_ENABLED
+//#define HAL_FIREWALL_MODULE_ENABLED
 #define HAL_FLASH_MODULE_ENABLED
-#define HAL_GFXMMU_MODULE_ENABLED
-#define HAL_HASH_MODULE_ENABLED
-#define HAL_HCD_MODULE_ENABLED
-#define HAL_NAND_MODULE_ENABLED
-#define HAL_NOR_MODULE_ENABLED
-#define HAL_SRAM_MODULE_ENABLED
+//#define HAL_GFXMMU_MODULE_ENABLED
+//#define HAL_HASH_MODULE_ENABLED
+//#define HAL_HCD_MODULE_ENABLED
+//#define HAL_NAND_MODULE_ENABLED
+//#define HAL_NOR_MODULE_ENABLED
+//#define HAL_SRAM_MODULE_ENABLED
 #define HAL_GPIO_MODULE_ENABLED
-#define HAL_I2C_MODULE_ENABLED
-#define HAL_IRDA_MODULE_ENABLED
-#define HAL_IWDG_MODULE_ENABLED
-#define HAL_LCD_MODULE_ENABLED
-#define HAL_LPTIM_MODULE_ENABLED
-#define HAL_LTDC_MODULE_ENABLED
-#define HAL_OPAMP_MODULE_ENABLED
-#define HAL_OSPI_MODULE_ENABLED
-#define HAL_PCD_MODULE_ENABLED
+//#define HAL_I2C_MODULE_ENABLED
+//#define HAL_IRDA_MODULE_ENABLED
+//#define HAL_IWDG_MODULE_ENABLED
+//#define HAL_LCD_MODULE_ENABLED
+//#define HAL_LPTIM_MODULE_ENABLED
+//#define HAL_LTDC_MODULE_ENABLED
+//#define HAL_OPAMP_MODULE_ENABLED
+//#define HAL_OSPI_MODULE_ENABLED
+//#define HAL_PCD_MODULE_ENABLED
 #define HAL_PWR_MODULE_ENABLED
-#define HAL_QSPI_MODULE_ENABLED
+//#define HAL_QSPI_MODULE_ENABLED
 #define HAL_RCC_MODULE_ENABLED
-#define HAL_RNG_MODULE_ENABLED
-#define HAL_RTC_MODULE_ENABLED
-#define HAL_SAI_MODULE_ENABLED
-#define HAL_SD_MODULE_ENABLED
-#define HAL_SMARTCARD_MODULE_ENABLED
-#define HAL_SMBUS_MODULE_ENABLED
-#define HAL_SPI_MODULE_ENABLED
-#define HAL_SWPMI_MODULE_ENABLED
+//#define HAL_RNG_MODULE_ENABLED
+//#define HAL_RTC_MODULE_ENABLED
+//#define HAL_SAI_MODULE_ENABLED
+//#define HAL_SD_MODULE_ENABLED
+//#define HAL_SMARTCARD_MODULE_ENABLED
+//#define HAL_SMBUS_MODULE_ENABLED
+//#define HAL_SPI_MODULE_ENABLED
+//#define HAL_SWPMI_MODULE_ENABLED
 #define HAL_TIM_MODULE_ENABLED
-#define HAL_TSC_MODULE_ENABLED
-#define HAL_UART_MODULE_ENABLED
-#define HAL_USART_MODULE_ENABLED
-#define HAL_WWDG_MODULE_ENABLED
+//#define HAL_TSC_MODULE_ENABLED
+//#define HAL_UART_MODULE_ENABLED
+//#define HAL_USART_MODULE_ENABLED
+//#define HAL_WWDG_MODULE_ENABLED
 
 
 /* ########################## Oscillator Values adaptation ####################*/
@@ -189,7 +189,8 @@
   * @brief This is the HAL system configuration section
   */
 #define  VDD_VALUE                    3300U /*!< Value of VDD in mv */
-#define  TICK_INT_PRIORITY            0x0FU /*!< tick interrupt priority */
+#define  TICK_INT_PRIORITY            0U /*!< tick interrupt priority */
+#define  SYSTICK_INT_PRIORITY         1U /*!< system tick interrupt priority */
 #define  USE_RTOS                     0U
 #define  PREFETCH_ENABLE              0U
 #define  INSTRUCTION_CACHE_ENABLE     1U
@@ -253,7 +254,7 @@
  * Deactivated: CRC code cleaned from driver
  */
 
-#define USE_SPI_CRC                   1U
+#define USE_SPI_CRC                   0U
 
 /* Includes ------------------------------------------------------------------*/
 /**
