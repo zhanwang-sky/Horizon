@@ -195,7 +195,9 @@ void assert_failed(char *file, uint32_t line)
 { 
   /* User can add his own implementation to report the file name and line number,
      ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
-
+  UNUSED(file);
+  UNUSED(line);
+  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_SET);
   /* Infinite loop */
   while (1)
   {
