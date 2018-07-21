@@ -10,6 +10,8 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "stm32l4xx_hal.h"
+#include "FreeRTOS.h"
+#include "task.h"
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
@@ -18,6 +20,7 @@
 /* Private function prototypes -----------------------------------------------*/
 static void SystemClock_Config(void);
 void MX_GPIO_Init(void);
+void blinkLED(void *pvParameters);
 
 /* Private functions ---------------------------------------------------------*/
 
@@ -44,13 +47,23 @@ int main(void) {
     /* Add your application code here */
     MX_GPIO_Init();
 
-    /* Infinite loop */
-    while (1) {
-        HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
-        HAL_Delay(1000);
-        HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
-        HAL_Delay(1000);
-    }
+    xTaskCreate(blinkLED,
+                "blinkLED",
+                configMINIMAL_STACK_SIZE,
+                NULL,
+                tskIDLE_PRIORITY + 1,
+                NULL);
+
+    /* Start the scheduler. */
+    vTaskStartScheduler();
+
+    /* If all is well, the scheduler will now be running, and the following line
+       will never be reached. 
+       If the following line does execute, then there was insufficient FreeRTOS
+       heap memory available for the idle and/or timer tasks to be created.
+       See the memory management section on the FreeRTOS web site for more
+       details. */
+    while(1);
 }
 
 /**
@@ -137,6 +150,36 @@ void MX_GPIO_Init(void) {
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+}
+
+void blinkLED(void *pvParameters) {
+    TickType_t xLastWakeTime;
+
+    // Initialise the xLastWakeTime variable with the current time.
+    xLastWakeTime = xTaskGetTickCount();
+
+     while (1) {
+         // Wait for the next cycle.
+         HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
+         vTaskDelayUntil(&xLastWakeTime, (TickType_t) 350 / portTICK_PERIOD_MS);
+         HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
+         vTaskDelayUntil(&xLastWakeTime, (TickType_t) 4650 / portTICK_PERIOD_MS);
+     }
+}
+
+/**
+  * @brief  Period elapsed callback in non-blocking mode.
+  * @note   This function is called when TIM7 interrupt took place, inside
+  *         HAL_TIM_IRQHandler().
+  *         It makes a direct call to HAL_IncTick() to increment a global
+  *         variable "uwTick" used as application time base.
+  * @param  htim: TIM handle
+  * @retval None
+  */
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
+    if (TIM7 == htim->Instance) {
+        HAL_IncTick();
+    }
 }
 
 #ifdef USE_FULL_ASSERT

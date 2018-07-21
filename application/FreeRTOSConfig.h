@@ -90,9 +90,9 @@ extern uint32_t SystemCoreClock;
 
 /* Definitions that map the FreeRTOS port interrupt handlers to their CMSIS
    standard names. */
-//#define xPortPendSVHandler PendSV_Handler
-//#define vPortSVCHandler SVC_Handler
-//#define xPortSysTickHandler SysTick_Handler
+#define xPortPendSVHandler PendSV_Handler
+#define vPortSVCHandler SVC_Handler
+#define xPortSysTickHandler SysTick_Handler
 
 /* Normal assert() semantics without relying on the provision of an assert.h
    header file. */
