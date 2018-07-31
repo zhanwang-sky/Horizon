@@ -11,6 +11,12 @@
 /* Includes ------------------------------------------------------------------*/
 #include "stm32l4xx_hal.h"
 
+/* External variables --------------------------------------------------------*/
+extern UART_HandleTypeDef huart2;
+extern DMA_HandleTypeDef hdma_usart2_rx;
+extern DMA_HandleTypeDef hdma_usart2_tx;
+extern TIM_HandleTypeDef htim7;
+
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
 /* Private macro -------------------------------------------------------------*/
@@ -115,13 +121,31 @@ void DebugMon_Handler(void) {
 /******************************************************************************/
 
 /**
-  * @brief  This function handles PPP interrupt request.
+  * @brief  This function handles UART interrupt request.
   * @param  None
   * @retval None
   */
-/*void PPP_IRQHandler(void)
-{
-}*/
+void USART2_IRQHandler(void) {
+    HAL_UART_IRQHandler(&huart2);
+}
+
+/**
+  * @brief  This function handles DMA1_Channel6 interrupt request.
+  * @param  None
+  * @retval None
+  */
+void DMA1_Channel6_IRQHandler(void) {
+    HAL_DMA_IRQHandler(&hdma_usart2_rx);
+}
+
+/**
+  * @brief  This function handles DMA1_Channel7 interrupt request.
+  * @param  None
+  * @retval None
+  */
+void DMA1_Channel7_IRQHandler(void) {
+    HAL_DMA_IRQHandler(&hdma_usart2_tx);
+}
 
 /**
   * @brief  This function handles TIM7 global interrupt.
@@ -129,8 +153,6 @@ void DebugMon_Handler(void) {
   * @retval None
 */
 void TIM7_IRQHandler(void) {
-    extern TIM_HandleTypeDef htim7;
-
     HAL_TIM_IRQHandler(&htim7);
 }
 

@@ -12,15 +12,24 @@
 #include "stm32l4xx_hal.h"
 #include "FreeRTOS.h"
 #include "task.h"
+#include "semphr.h"
+
+/* Global variables ----------------------------------------------------------*/
+UART_HandleTypeDef huart2;
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
+SemaphoreHandle_t xTxCplt;
+
 /* Private function prototypes -----------------------------------------------*/
 static void SystemClock_Config(void);
 void MX_GPIO_Init(void);
+void MX_DMA_Init(void);
+void MX_USART2_UART_Init(void);
 void blinkLED(void *pvParameters);
+void printHello(void *pvParameters);
 
 /* Private functions ---------------------------------------------------------*/
 
@@ -46,9 +55,22 @@ int main(void) {
 
     /* Add your application code here */
     MX_GPIO_Init();
+    MX_DMA_Init();
+    MX_USART2_UART_Init();
+
+    // This semaphore is used for indicating whether UART tranmission is done.
+    // it will be given in UART2 cpltCallback and tested in task printHello.
+    xTxCplt = xSemaphoreCreateBinary();
 
     xTaskCreate(blinkLED,
                 "blinkLED",
+                configMINIMAL_STACK_SIZE,
+                NULL,
+                tskIDLE_PRIORITY + 2,
+                NULL);
+
+    xTaskCreate(printHello,
+                "print hello",
                 configMINIMAL_STACK_SIZE,
                 NULL,
                 tskIDLE_PRIORITY + 1,
@@ -152,6 +174,39 @@ void MX_GPIO_Init(void) {
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 }
 
+void MX_DMA_Init(void) {
+    /* DMA controller clock enable */
+    __HAL_RCC_DMA1_CLK_ENABLE();
+
+    /* DMA1_Channel6_IRQn interrupt configuration */
+    HAL_NVIC_SetPriority(DMA1_Channel6_IRQn, SYSTICK_INT_PRIORITY - 1U, 0);
+    HAL_NVIC_EnableIRQ(DMA1_Channel6_IRQn);
+    /* DMA1_Channel7_IRQn interrupt configuration */
+    HAL_NVIC_SetPriority(DMA1_Channel7_IRQn, SYSTICK_INT_PRIORITY - 1U, 0);
+    HAL_NVIC_EnableIRQ(DMA1_Channel7_IRQn);
+}
+
+/**
+  * @brief  UART2 Initiation routine
+  * @param  None
+  * @retval None
+  */
+void MX_USART2_UART_Init(void) {
+    huart2.Instance = USART2;
+    huart2.Init.BaudRate = 9600;
+    huart2.Init.WordLength = UART_WORDLENGTH_8B;
+    huart2.Init.StopBits = UART_STOPBITS_1;
+    huart2.Init.Parity = UART_PARITY_NONE;
+    huart2.Init.Mode = UART_MODE_TX_RX;
+    huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+    huart2.Init.OverSampling = UART_OVERSAMPLING_8;
+    huart2.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
+    huart2.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
+    if (HAL_UART_Init(&huart2) != HAL_OK) {
+        while(1);
+    }
+}
+
 void blinkLED(void *pvParameters) {
     TickType_t xLastWakeTime;
 
@@ -161,9 +216,31 @@ void blinkLED(void *pvParameters) {
      while (1) {
          // Wait for the next cycle.
          HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
-         vTaskDelayUntil(&xLastWakeTime, (TickType_t) 350 / portTICK_PERIOD_MS);
+         vTaskDelayUntil(&xLastWakeTime, (TickType_t) 100 / portTICK_PERIOD_MS);
          HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
-         vTaskDelayUntil(&xLastWakeTime, (TickType_t) 4650 / portTICK_PERIOD_MS);
+         vTaskDelayUntil(&xLastWakeTime, (TickType_t) 900 / portTICK_PERIOD_MS);
+     }
+}
+
+void printHello(void *pvParameters) {
+    TickType_t xLastWakeTime;
+
+    // Initialise the xLastWakeTime variable with the current time.
+    xLastWakeTime = xTaskGetTickCount();
+
+     while (1) {
+         vTaskDelayUntil(&xLastWakeTime, (TickType_t) 1000 / portTICK_PERIOD_MS);
+         HAL_UART_Transmit(&huart2, (uint8_t *) "Hello world! (using blocking mode)\r\n", 36, 100);
+
+         vTaskDelayUntil(&xLastWakeTime, (TickType_t) 1000 / portTICK_PERIOD_MS);
+         HAL_UART_Transmit_IT(&huart2, (uint8_t *) "Hello world! (using interrupt mode)\r\n", 37);
+         // waiting for tranmission complete, timeout 100ms
+         configASSERT(pdTRUE == xSemaphoreTake(xTxCplt, 100 / portTICK_PERIOD_MS));
+
+         vTaskDelayUntil(&xLastWakeTime, (TickType_t) 1000 / portTICK_PERIOD_MS);
+         HAL_UART_Transmit_DMA(&huart2, (uint8_t *) "Hello world! (using DMA mode)\r\n", 31);
+         // waiting for tranmission complete, timeout 100ms
+         configASSERT(pdTRUE == xSemaphoreTake(xTxCplt, 100 / portTICK_PERIOD_MS));
      }
 }
 
@@ -179,6 +256,12 @@ void blinkLED(void *pvParameters) {
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
     if (TIM7 == htim->Instance) {
         HAL_IncTick();
+    }
+}
+
+void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) {
+    if (USART2 == huart->Instance) {
+        xSemaphoreGiveFromISR(xTxCplt, NULL);
     }
 }
 
