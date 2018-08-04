@@ -109,9 +109,9 @@ void DebugMon_Handler(void) {
   * @param  None
   * @retval None
   */
-/*void SysTick_Handler(void) {
+void SysTick_Handler(void) {
     HAL_SYSTICK_IRQHandler();
-}*/
+}
 
 /******************************************************************************/
 /*                 STM32L4xx Peripherals Interrupt Handlers                   */

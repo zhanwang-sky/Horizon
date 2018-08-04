@@ -18,6 +18,9 @@
 /* Global variables ----------------------------------------------------------*/
 UART_HandleTypeDef huart2;
 
+/* Global function prototypes ------------------------------------------------*/
+void xPortSysTickHandler( void );
+
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
 /* Private macro -------------------------------------------------------------*/
@@ -233,10 +236,11 @@ void printHello(void *pvParameters) {
     xLastWakeTime = xTaskGetTickCount();
 
      while (1) {
-         vTaskDelayUntil(&xLastWakeTime, (TickType_t) pdMS_TO_TICKS(1000));
+         //vTaskDelayUntil(&xLastWakeTime, (TickType_t) pdMS_TO_TICKS(1000));
+         HAL_Delay(100);
          HAL_UART_Transmit(&huart2, (uint8_t *) "Hello world! (using blocking mode)\r\n", 36, 100);
 
-         vTaskDelayUntil(&xLastWakeTime, (TickType_t) pdMS_TO_TICKS(1000));
+         vTaskDelayUntil(&xLastWakeTime, (TickType_t) pdMS_TO_TICKS(2000));
          HAL_UART_Transmit_IT(&huart2, (uint8_t *) "Hello world! (using interrupt mode)\r\n", 37);
          // waiting for tranmission complete, timeout 100ms
          configASSERT(pdTRUE == xSemaphoreTake(xSem_txCplt, pdMS_TO_TICKS(100)));
@@ -283,6 +287,17 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
     if (TIM7 == htim->Instance) {
         HAL_IncTick();
+    }
+}
+
+/**
+  * @brief  SYSTICK callback.
+  * @param  None
+  * @retval None
+  */
+void HAL_SYSTICK_Callback(void) {
+    if (xTaskGetSchedulerState() != taskSCHEDULER_NOT_STARTED) {
+        xPortSysTickHandler();
     }
 }
 

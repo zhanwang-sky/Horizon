@@ -75,7 +75,7 @@ extern uint32_t SystemCoreClock;
    routine that makes calls to interrupt safe FreeRTOS API functions.
    DO NOT CALL INTERRUPT SAFE FREERTOS API FUNCTIONS FROM ANY INTERRUPT THAT HAS
    A HIGHER PRIORITY THAN THIS! (higher priorities are lower numeric values.) */
-#define configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY 4
+#define configLIBRARY_MAX_SYSCALL_INTERRUPT_PRIORITY 5
 
 /* Interrupt priorities used by the kernel port layer itself. These are generic
    to all Cortex-M ports, and do not rely on any particular library functions.*/
@@ -92,7 +92,6 @@ extern uint32_t SystemCoreClock;
    standard names. */
 #define xPortPendSVHandler PendSV_Handler
 #define vPortSVCHandler SVC_Handler
-#define xPortSysTickHandler SysTick_Handler
 
 /* Normal assert() semantics without relying on the provision of an assert.h
    header file. */
