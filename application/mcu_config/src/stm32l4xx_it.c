@@ -121,6 +121,15 @@ void SysTick_Handler(void) {
 /******************************************************************************/
 
 /**
+  * @brief  This function handles EXTI line0 interrupt.
+  * @param  None
+  * @retval None
+  */
+void EXTI0_IRQHandler(void) {
+    HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_0);
+}
+
+/**
   * @brief  This function handles DMA1_Channel6 interrupt request.
   * @param  None
   * @retval None
