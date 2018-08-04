@@ -121,15 +121,6 @@ void DebugMon_Handler(void) {
 /******************************************************************************/
 
 /**
-  * @brief  This function handles UART interrupt request.
-  * @param  None
-  * @retval None
-  */
-void USART2_IRQHandler(void) {
-    HAL_UART_IRQHandler(&huart2);
-}
-
-/**
   * @brief  This function handles DMA1_Channel6 interrupt request.
   * @param  None
   * @retval None
@@ -145,6 +136,24 @@ void DMA1_Channel6_IRQHandler(void) {
   */
 void DMA1_Channel7_IRQHandler(void) {
     HAL_DMA_IRQHandler(&hdma_usart2_tx);
+}
+
+/**
+  * @brief  This function handles UART interrupt request.
+  * @param  None
+  * @retval None
+  */
+void USART2_IRQHandler(void) {
+    HAL_UART_IRQHandler(&huart2);
+}
+
+/**
+  * @brief  This function handles EXTI line[15:10] interrupts.
+  * @param  None
+  * @retval None
+  */
+void EXTI15_10_IRQHandler(void) {
+    HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_13);
 }
 
 /**

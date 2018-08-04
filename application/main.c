@@ -13,6 +13,7 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "semphr.h"
+#include "timers.h"
 
 /* Global variables ----------------------------------------------------------*/
 UART_HandleTypeDef huart2;
@@ -21,7 +22,9 @@ UART_HandleTypeDef huart2;
 /* Private define ------------------------------------------------------------*/
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
-SemaphoreHandle_t xTxCplt;
+SemaphoreHandle_t xSem_txCplt;
+TimerHandle_t xTimer_blink;
+__IO uint32_t xBlinkPeriod = 1000;
 
 /* Private function prototypes -----------------------------------------------*/
 static void SystemClock_Config(void);
@@ -60,20 +63,21 @@ int main(void) {
 
     // This semaphore is used for indicating whether UART tranmission is done.
     // it will be given in UART2 cpltCallback and tested in task printHello.
-    xTxCplt = xSemaphoreCreateBinary();
+    xSem_txCplt = xSemaphoreCreateBinary();
 
-    xTaskCreate(blinkLED,
-                "blinkLED",
-                configMINIMAL_STACK_SIZE,
-                NULL,
-                tskIDLE_PRIORITY + 2,
-                NULL);
+    xTimer_blink = xTimerCreate("blinkLED",
+                                pdMS_TO_TICKS(xBlinkPeriod),
+                                pdTRUE,
+                                NULL,
+                                blinkLED);
+
+    xTimerStart(xTimer_blink, 0);
 
     xTaskCreate(printHello,
                 "print hello",
                 configMINIMAL_STACK_SIZE,
                 NULL,
-                tskIDLE_PRIORITY + 1,
+                tskIDLE_PRIORITY + 2,
                 NULL);
 
     /* Start the scheduler. */
@@ -162,16 +166,27 @@ void MX_GPIO_Init(void) {
 
     /* GPIO Ports Clock Enable */
     __HAL_RCC_GPIOA_CLK_ENABLE();
+    __HAL_RCC_GPIOC_CLK_ENABLE();
 
     /* Configure GPIO pin Output Level */
     HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET);
 
-    /* Configure GPIO pin */
+    /* Configure GPIO pin: PA5(LD2-LED) */
     GPIO_InitStruct.Pin = GPIO_PIN_5;
     GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+    /*Configure GPIO pin : PC13(B1-USER) */
+    GPIO_InitStruct.Pin = GPIO_PIN_13;
+    GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
+    /* EXTI interrupt init */
+    HAL_NVIC_SetPriority(EXTI15_10_IRQn, SYSTICK_INT_PRIORITY - 1U, 0);
+    HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
 }
 
 void MX_DMA_Init(void) {
@@ -179,10 +194,10 @@ void MX_DMA_Init(void) {
     __HAL_RCC_DMA1_CLK_ENABLE();
 
     /* DMA1_Channel6_IRQn interrupt configuration */
-    HAL_NVIC_SetPriority(DMA1_Channel6_IRQn, SYSTICK_INT_PRIORITY - 1U, 0);
+    HAL_NVIC_SetPriority(DMA1_Channel6_IRQn, SYSTICK_INT_PRIORITY - 2U, 0);
     HAL_NVIC_EnableIRQ(DMA1_Channel6_IRQn);
     /* DMA1_Channel7_IRQn interrupt configuration */
-    HAL_NVIC_SetPriority(DMA1_Channel7_IRQn, SYSTICK_INT_PRIORITY - 1U, 0);
+    HAL_NVIC_SetPriority(DMA1_Channel7_IRQn, SYSTICK_INT_PRIORITY - 2U, 0);
     HAL_NVIC_EnableIRQ(DMA1_Channel7_IRQn);
 }
 
@@ -207,19 +222,8 @@ void MX_USART2_UART_Init(void) {
     }
 }
 
-void blinkLED(void *pvParameters) {
-    TickType_t xLastWakeTime;
-
-    // Initialise the xLastWakeTime variable with the current time.
-    xLastWakeTime = xTaskGetTickCount();
-
-     while (1) {
-         // Wait for the next cycle.
-         HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
-         vTaskDelayUntil(&xLastWakeTime, (TickType_t) 100 / portTICK_PERIOD_MS);
-         HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
-         vTaskDelayUntil(&xLastWakeTime, (TickType_t) 900 / portTICK_PERIOD_MS);
-     }
+void blinkLED(TimerHandle_t xTimer) {
+    HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
 }
 
 void printHello(void *pvParameters) {
@@ -229,19 +233,42 @@ void printHello(void *pvParameters) {
     xLastWakeTime = xTaskGetTickCount();
 
      while (1) {
-         vTaskDelayUntil(&xLastWakeTime, (TickType_t) 1000 / portTICK_PERIOD_MS);
+         vTaskDelayUntil(&xLastWakeTime, (TickType_t) pdMS_TO_TICKS(1000));
          HAL_UART_Transmit(&huart2, (uint8_t *) "Hello world! (using blocking mode)\r\n", 36, 100);
 
-         vTaskDelayUntil(&xLastWakeTime, (TickType_t) 1000 / portTICK_PERIOD_MS);
+         vTaskDelayUntil(&xLastWakeTime, (TickType_t) pdMS_TO_TICKS(1000));
          HAL_UART_Transmit_IT(&huart2, (uint8_t *) "Hello world! (using interrupt mode)\r\n", 37);
          // waiting for tranmission complete, timeout 100ms
-         configASSERT(pdTRUE == xSemaphoreTake(xTxCplt, 100 / portTICK_PERIOD_MS));
+         configASSERT(pdTRUE == xSemaphoreTake(xSem_txCplt, pdMS_TO_TICKS(100)));
 
-         vTaskDelayUntil(&xLastWakeTime, (TickType_t) 1000 / portTICK_PERIOD_MS);
+         vTaskDelayUntil(&xLastWakeTime, (TickType_t) pdMS_TO_TICKS(1000));
          HAL_UART_Transmit_DMA(&huart2, (uint8_t *) "Hello world! (using DMA mode)\r\n", 31);
          // waiting for tranmission complete, timeout 100ms
-         configASSERT(pdTRUE == xSemaphoreTake(xTxCplt, 100 / portTICK_PERIOD_MS));
+         configASSERT(pdTRUE == xSemaphoreTake(xSem_txCplt, pdMS_TO_TICKS(100)));
      }
+}
+
+/**
+  * @brief  Tx Transfer completed callback.
+  * @param  huart UART handle.
+  * @retval None
+  */
+void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) {
+    if (USART2 == huart->Instance) {
+        xSemaphoreGiveFromISR(xSem_txCplt, NULL);
+    }
+}
+
+/**
+  * @brief  EXTI line detection callback.
+  * @param  GPIO_Pin: Specifies the port pin connected to corresponding EXTI line.
+  * @retval None
+  */
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
+    if (GPIO_PIN_13 == GPIO_Pin) {
+        xBlinkPeriod = (xBlinkPeriod == 1000) ? 100 : 1000;
+        xTimerChangePeriodFromISR(xTimer_blink, pdMS_TO_TICKS(xBlinkPeriod), NULL);
+    }
 }
 
 /**
@@ -256,12 +283,6 @@ void printHello(void *pvParameters) {
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
     if (TIM7 == htim->Instance) {
         HAL_IncTick();
-    }
-}
-
-void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) {
-    if (USART2 == huart->Instance) {
-        xSemaphoreGiveFromISR(xTxCplt, NULL);
     }
 }
 
