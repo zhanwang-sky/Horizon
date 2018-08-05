@@ -9,6 +9,8 @@
   */
 
 /* Includes ------------------------------------------------------------------*/
+#include <string.h>
+
 #include "stm32l4xx_hal.h"
 #include "FreeRTOS.h"
 #include "task.h"
@@ -25,9 +27,8 @@ void xPortSysTickHandler( void );
 /* Private define ------------------------------------------------------------*/
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
-SemaphoreHandle_t xSem_txCplt;
+SemaphoreHandle_t xSem_uartTxCplt;
 TimerHandle_t xTimer_blink;
-__IO uint32_t xBlinkPeriod = 1000;
 
 /* Private function prototypes -----------------------------------------------*/
 static void SystemClock_Config(void);
@@ -64,12 +65,15 @@ int main(void) {
     MX_DMA_Init();
     MX_USART2_UART_Init();
 
+    // test HAL_Delay();
+    HAL_Delay(3000);
+
     // This semaphore is used for indicating whether UART tranmission is done.
     // it will be given in UART2 cpltCallback and tested in task printHello.
-    xSem_txCplt = xSemaphoreCreateBinary();
+    xSem_uartTxCplt = xSemaphoreCreateBinary();
 
     xTimer_blink = xTimerCreate("blinkLED",
-                                pdMS_TO_TICKS(xBlinkPeriod),
+                                pdMS_TO_TICKS(1000),
                                 pdTRUE,
                                 NULL,
                                 blinkLED);
@@ -77,7 +81,7 @@ int main(void) {
     xTimerStart(xTimer_blink, 0);
 
     xTaskCreate(printHello,
-                "print hello",
+                "printHello",
                 configMINIMAL_STACK_SIZE,
                 NULL,
                 tskIDLE_PRIORITY + 2,
@@ -211,7 +215,7 @@ void MX_DMA_Init(void) {
   */
 void MX_USART2_UART_Init(void) {
     huart2.Instance = USART2;
-    huart2.Init.BaudRate = 9600;
+    huart2.Init.BaudRate = 115200;
     huart2.Init.WordLength = UART_WORDLENGTH_8B;
     huart2.Init.StopBits = UART_STOPBITS_1;
     huart2.Init.Parity = UART_PARITY_NONE;
@@ -230,25 +234,28 @@ void blinkLED(TimerHandle_t xTimer) {
 }
 
 void printHello(void *pvParameters) {
+    static char uartTxBuf[128] = { 0 };
     TickType_t xLastWakeTime;
 
     // Initialise the xLastWakeTime variable with the current time.
     xLastWakeTime = xTaskGetTickCount();
 
      while (1) {
-         //vTaskDelayUntil(&xLastWakeTime, (TickType_t) pdMS_TO_TICKS(1000));
-         HAL_Delay(100);
-         HAL_UART_Transmit(&huart2, (uint8_t *) "Hello world! (using blocking mode)\r\n", 36, 100);
+         snprintf(uartTxBuf, sizeof(uartTxBuf), "Hello world! (using blocking mode)\r\n");
+         configASSERT(HAL_OK == HAL_UART_Transmit(&huart2, (uint8_t *) uartTxBuf, strlen(uartTxBuf), 10));
+         vTaskDelayUntil(&xLastWakeTime, (TickType_t) pdMS_TO_TICKS(500));
 
-         vTaskDelayUntil(&xLastWakeTime, (TickType_t) pdMS_TO_TICKS(2000));
-         HAL_UART_Transmit_IT(&huart2, (uint8_t *) "Hello world! (using interrupt mode)\r\n", 37);
-         // waiting for tranmission complete, timeout 100ms
-         configASSERT(pdTRUE == xSemaphoreTake(xSem_txCplt, pdMS_TO_TICKS(100)));
-
+         snprintf(uartTxBuf, sizeof(uartTxBuf), "Hello world! (using interrupt mode)\r\n");
+         HAL_UART_Transmit_IT(&huart2, (uint8_t *) uartTxBuf, strlen(uartTxBuf));
+         // waiting for tranmission complete, timeout is 10ms
+         configASSERT(pdTRUE == xSemaphoreTake(xSem_uartTxCplt, pdMS_TO_TICKS(10)));
          vTaskDelayUntil(&xLastWakeTime, (TickType_t) pdMS_TO_TICKS(1000));
-         HAL_UART_Transmit_DMA(&huart2, (uint8_t *) "Hello world! (using DMA mode)\r\n", 31);
-         // waiting for tranmission complete, timeout 100ms
-         configASSERT(pdTRUE == xSemaphoreTake(xSem_txCplt, pdMS_TO_TICKS(100)));
+
+         snprintf(uartTxBuf, sizeof(uartTxBuf), "Hello world! (using DMA mode)\r\n");
+         HAL_UART_Transmit_DMA(&huart2, (uint8_t *) uartTxBuf, strlen(uartTxBuf));
+         // waiting for tranmission complete, timeout is 10ms
+         configASSERT(pdTRUE == xSemaphoreTake(xSem_uartTxCplt, pdMS_TO_TICKS(10)));
+         vTaskDelayUntil(&xLastWakeTime, (TickType_t) pdMS_TO_TICKS(1500));
      }
 }
 
@@ -259,7 +266,7 @@ void printHello(void *pvParameters) {
   */
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) {
     if (USART2 == huart->Instance) {
-        xSemaphoreGiveFromISR(xSem_txCplt, NULL);
+        xSemaphoreGiveFromISR(xSem_uartTxCplt, NULL);
     }
 }
 
@@ -269,6 +276,8 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) {
   * @retval None
   */
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
+    static uint32_t xBlinkPeriod = 1000;
+
     if (GPIO_PIN_13 == GPIO_Pin) {
         xBlinkPeriod = (xBlinkPeriod == 1000) ? 100 : 1000;
         xTimerChangePeriodFromISR(xTimer_blink, pdMS_TO_TICKS(xBlinkPeriod), NULL);
