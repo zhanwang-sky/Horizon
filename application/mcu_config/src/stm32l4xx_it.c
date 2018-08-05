@@ -12,9 +12,12 @@
 #include "stm32l4xx_hal.h"
 
 /* External variables --------------------------------------------------------*/
-extern UART_HandleTypeDef huart2;
+extern DMA_HandleTypeDef hdma_spi1_rx;
+extern DMA_HandleTypeDef hdma_spi1_tx;
 extern DMA_HandleTypeDef hdma_usart2_rx;
 extern DMA_HandleTypeDef hdma_usart2_tx;
+extern SPI_HandleTypeDef hspi1;
+extern UART_HandleTypeDef huart2;
 extern TIM_HandleTypeDef htim7;
 
 /* Private typedef -----------------------------------------------------------*/
@@ -130,6 +133,24 @@ void EXTI0_IRQHandler(void) {
 }
 
 /**
+  * @brief  This function handles DMA1_Channel2 interrupt request.
+  * @param  None
+  * @retval None
+  */
+void DMA1_Channel2_IRQHandler(void) {
+    HAL_DMA_IRQHandler(&hdma_spi1_rx);
+}
+
+/**
+  * @brief  This function handles DMA1_Channel3 interrupt request.
+  * @param  None
+  * @retval None
+  */
+void DMA1_Channel3_IRQHandler(void) {
+    HAL_DMA_IRQHandler(&hdma_spi1_tx);
+}
+
+/**
   * @brief  This function handles DMA1_Channel6 interrupt request.
   * @param  None
   * @retval None
@@ -145,6 +166,15 @@ void DMA1_Channel6_IRQHandler(void) {
   */
 void DMA1_Channel7_IRQHandler(void) {
     HAL_DMA_IRQHandler(&hdma_usart2_tx);
+}
+
+/**
+  * @brief  This function handles SPI1 global interrupt.
+  * @param  None
+  * @retval None
+  */
+void SPI1_IRQHandler(void) {
+    HAL_SPI_IRQHandler(&hspi1);
 }
 
 /**

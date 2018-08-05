@@ -19,6 +19,7 @@
 
 /* Global variables ----------------------------------------------------------*/
 UART_HandleTypeDef huart2;
+SPI_HandleTypeDef hspi1;
 
 /* Global function prototypes ------------------------------------------------*/
 void xPortSysTickHandler( void );
@@ -27,16 +28,19 @@ void xPortSysTickHandler( void );
 /* Private define ------------------------------------------------------------*/
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
+SemaphoreHandle_t xSem_spi1RxCplt;
+SemaphoreHandle_t xSem_uart2TxCplt;
 SemaphoreHandle_t xSem_blueNRGEvent;
-SemaphoreHandle_t xSem_txCplt;
 TimerHandle_t xTimer_blink;
 __IO uint32_t xBlinkPeriod = 1000;
 
 /* Private function prototypes -----------------------------------------------*/
-static void SystemClock_Config(void);
+void SystemClock_Config(void);
 void MX_GPIO_Init(void);
 void MX_DMA_Init(void);
 void MX_USART2_UART_Init(void);
+void MX_SPI1_Init(void);
+
 void blinkLED(void *pvParameters);
 void printHello(void *pvParameters);
 
@@ -66,16 +70,18 @@ int main(void) {
     MX_GPIO_Init();
     MX_DMA_Init();
     MX_USART2_UART_Init();
+    MX_SPI1_Init();
 
     // release BlueNRG-MS reset signal */
-    HAL_Delay(100);
+    HAL_Delay(2);
     HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_SET);
 
     // This semaphore is used for indicating whether UART tranmission is done.
     // it will be given in UART2 cpltCallback and tested in task printHello.
-    xSem_txCplt = xSemaphoreCreateBinary();
+    xSem_uart2TxCplt = xSemaphoreCreateBinary();
 
     xSem_blueNRGEvent = xSemaphoreCreateBinary();
+    xSem_spi1RxCplt = xSemaphoreCreateBinary();
 
     xTimer_blink = xTimerCreate("blinkLED",
                                 pdMS_TO_TICKS(xBlinkPeriod),
@@ -123,7 +129,7 @@ int main(void) {
   * @param  None
   * @retval None
   */
-static void SystemClock_Config(void) {
+void SystemClock_Config(void) {
     RCC_OscInitTypeDef RCC_OscInitStruct;
     RCC_ClkInitTypeDef RCC_ClkInitStruct;
 
@@ -178,14 +184,20 @@ void MX_GPIO_Init(void) {
 
     /* GPIO Ports Clock Enable */
     __HAL_RCC_GPIOA_CLK_ENABLE();
+    __HAL_RCC_GPIOB_CLK_ENABLE();
     __HAL_RCC_GPIOC_CLK_ENABLE();
 
     /* GPIO Port A configuration */
     /* Configure GPIO pin Output Level */
     HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5 | GPIO_PIN_8, GPIO_PIN_RESET);
+    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_SET);
 
-    /* Configure GPIO pin: PA5(LD2-LED) | PA8(X-NUCLEO-IDB05A1::RST) */
-    GPIO_InitStruct.Pin = GPIO_PIN_5 | GPIO_PIN_8;
+    /* Configure GPIO pin:
+       PA1(X-NUCLEO-IDB05A1::CSN)
+       PA5(LD2-LED)
+       PA8(X-NUCLEO-IDB05A1::RST)
+     */
+    GPIO_InitStruct.Pin = GPIO_PIN_1 | GPIO_PIN_5 | GPIO_PIN_8;
     GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
@@ -216,6 +228,13 @@ void MX_DMA_Init(void) {
     /* DMA controller clock enable */
     __HAL_RCC_DMA1_CLK_ENABLE();
 
+    /* DMA interrupt init */
+    /* DMA1_Channel2_IRQn interrupt configuration */
+    HAL_NVIC_SetPriority(DMA1_Channel2_IRQn, SYSTICK_INT_PRIORITY - 2U, 0);
+    HAL_NVIC_EnableIRQ(DMA1_Channel2_IRQn);
+    /* DMA1_Channel3_IRQn interrupt configuration */
+    HAL_NVIC_SetPriority(DMA1_Channel3_IRQn, SYSTICK_INT_PRIORITY - 2U, 0);
+    HAL_NVIC_EnableIRQ(DMA1_Channel3_IRQn);
     /* DMA1_Channel6_IRQn interrupt configuration */
     HAL_NVIC_SetPriority(DMA1_Channel6_IRQn, SYSTICK_INT_PRIORITY - 2U, 0);
     HAL_NVIC_EnableIRQ(DMA1_Channel6_IRQn);
@@ -245,29 +264,120 @@ void MX_USART2_UART_Init(void) {
     }
 }
 
+/**
+  * @brief  SPI1 Initiation routine
+  * @param  None
+  * @retval None
+  */
+void MX_SPI1_Init(void) {
+    hspi1.Instance = SPI1;
+    hspi1.Init.Mode = SPI_MODE_MASTER;
+    hspi1.Init.Direction = SPI_DIRECTION_2LINES;
+    hspi1.Init.DataSize = SPI_DATASIZE_8BIT;
+    hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
+    hspi1.Init.CLKPhase = SPI_PHASE_1EDGE;
+    hspi1.Init.NSS = SPI_NSS_SOFT;
+    hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_16;
+    hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
+    hspi1.Init.TIMode = SPI_TIMODE_DISABLE;
+    hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
+    hspi1.Init.CRCPolynomial = 7;
+    hspi1.Init.CRCLength = SPI_CRC_LENGTH_DATASIZE;
+    hspi1.Init.NSSPMode = SPI_NSS_PULSE_ENABLE;
+    if (HAL_SPI_Init(&hspi1) != HAL_OK) {
+        while(1);
+    }
+}
+
 void blinkLED(TimerHandle_t xTimer) {
     HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_5);
 }
 
 void printHello(void *pvParameters) {
-    static const char msg[] = "BlueNRG event!\r\n";
+    static char uartTxBuf[128] = { '\0' };
+    static uint8_t firstReply[5] = { 0 };
+    static uint8_t secondReply[5] = { 0 };
+    static uint8_t HIC_VS[6] = { 0 };
+    int i, len;
 
      while (1) {
-         configASSERT(pdTRUE == xSemaphoreTake(xSem_blueNRGEvent, portMAX_DELAY));
-         HAL_UART_Transmit_DMA(&huart2, (uint8_t *) msg, strlen(msg));
-         // waiting for tranmission complete, timeout 20ms
-         configASSERT(pdTRUE == xSemaphoreTake(xSem_txCplt, pdMS_TO_TICKS(20)));
-     }
+        // BlueNRG event occurs.
+        configASSERT(pdTRUE == xSemaphoreTake(xSem_blueNRGEvent, portMAX_DELAY));
+
+        // inform user
+        snprintf(uartTxBuf, sizeof(uartTxBuf), "BlueNRG event:\r\n");
+        HAL_UART_Transmit_DMA(&huart2, (uint8_t *) uartTxBuf, strlen(uartTxBuf));
+
+        // select BlueNRG
+        HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_RESET);
+        // read first reply
+        HAL_SPI_Receive_DMA(&hspi1, firstReply, sizeof(firstReply));
+        // waiting for SPI Rx transfer complete, timeout is 5ms
+        configASSERT(pdTRUE == xSemaphoreTake(xSem_spi1RxCplt, pdMS_TO_TICKS(5)));
+        // release BlueNRG
+        HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_SET);
+
+        // do something...
+        vTaskDelay(1);
+
+        // select BlueNRG again
+        HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_RESET);
+        // read second reply
+        HAL_SPI_Receive_DMA(&hspi1, secondReply, sizeof(secondReply));
+        // waiting for SPI Rx transfer complete, timeout is 5ms
+        configASSERT(pdTRUE == xSemaphoreTake(xSem_spi1RxCplt, pdMS_TO_TICKS(5)));
+
+        // do something...
+
+        // read HIC_VS
+        HAL_SPI_Receive_DMA(&hspi1, HIC_VS, sizeof(HIC_VS));
+        // waiting for SPI Rx transfer complete, timeout is 5ms
+        configASSERT(pdTRUE == xSemaphoreTake(xSem_spi1RxCplt, pdMS_TO_TICKS(5)));
+        // release BlueNRG
+        HAL_GPIO_WritePin(GPIOA, GPIO_PIN_1, GPIO_PIN_SET);
+
+        // waiting for UART Tx transfer complete, timeout is 20ms
+        configASSERT(pdTRUE == xSemaphoreTake(xSem_uart2TxCplt, pdMS_TO_TICKS(20)));
+        // print content
+        len = snprintf(uartTxBuf, sizeof(uartTxBuf), "first reply: ");
+        for (i = 0; i < sizeof(firstReply); i++) {
+            len += snprintf(uartTxBuf + len, sizeof(uartTxBuf) - len, "%02X ", firstReply[i]);
+        }
+        len += snprintf(uartTxBuf + len, sizeof(uartTxBuf) - len, "\r\nsecond reply: ");
+        for (i = 0; i < sizeof(secondReply); i++) {
+            len += snprintf(uartTxBuf + len, sizeof(uartTxBuf) - len, "%02X ", secondReply[i]);
+        }
+        len += snprintf(uartTxBuf + len, sizeof(uartTxBuf) - len, "\r\nHIC_VS: ");
+        for (i = 0; i < sizeof(HIC_VS); i++) {
+            len += snprintf(uartTxBuf + len, sizeof(uartTxBuf) - len, "%02X ", HIC_VS[i]);
+        }
+        snprintf(uartTxBuf + len, sizeof(uartTxBuf) - len, "\r\n");
+        // send message
+        HAL_UART_Transmit_DMA(&huart2, (uint8_t *) uartTxBuf, strlen(uartTxBuf));
+        // waiting for UART Tx transfer complete, timeout is 100ms
+        configASSERT(pdTRUE == xSemaphoreTake(xSem_uart2TxCplt, pdMS_TO_TICKS(100)));
+    }
 }
 
 /**
-  * @brief  Tx Transfer completed callback.
+  * @brief  SPI Rx Transfer completed callback.
+  * @param  huart UART handle.
+  * @retval None
+  */
+void HAL_SPI_RxCpltCallback (SPI_HandleTypeDef *hspi) {
+    if (SPI1 == hspi->Instance) {
+        xSemaphoreGiveFromISR(xSem_spi1RxCplt, NULL);
+    }
+}
+
+/**
+  * @brief  UART Tx Transfer completed callback.
   * @param  huart UART handle.
   * @retval None
   */
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) {
     if (USART2 == huart->Instance) {
-        xSemaphoreGiveFromISR(xSem_txCplt, NULL);
+        xSemaphoreGiveFromISR(xSem_uart2TxCplt, NULL);
     }
 }
 

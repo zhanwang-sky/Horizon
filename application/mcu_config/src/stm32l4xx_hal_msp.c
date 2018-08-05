@@ -14,6 +14,8 @@
 /* Global variables ----------------------------------------------------------*/
 DMA_HandleTypeDef hdma_usart2_rx;
 DMA_HandleTypeDef hdma_usart2_tx;
+DMA_HandleTypeDef hdma_spi1_rx;
+DMA_HandleTypeDef hdma_spi1_tx;
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
@@ -129,7 +131,7 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef *huart) {
         /* Peripheral clock disable */
         __HAL_RCC_USART2_CLK_DISABLE();
 
-        /* USART2 GPIO Configuration
+        /* USART2 GPIO UnConfiguration
            PA2 -> USART2_TX
            PA3 -> USART2_RX
          */
@@ -141,6 +143,101 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef *huart) {
 
         /* USART2 interrupt Deinit */
         HAL_NVIC_DisableIRQ(USART2_IRQn);
+    }
+}
+
+/**
+  * @brief  Initialize the SPI MSP
+  * @param  None
+  * @retval None
+  */
+void HAL_SPI_MspInit(SPI_HandleTypeDef* spiHandle) {
+    GPIO_InitTypeDef GPIO_InitStruct;
+
+    if(SPI1 == spiHandle->Instance) {
+        /* SPI1 clock enable */
+        __HAL_RCC_SPI1_CLK_ENABLE();
+
+        /* SPI1 GPIO Configuration
+           PA6 -> SPI1_MISO
+           PA7 -> SPI1_MOSI
+           PB3 (JTDO-TRACESWO) -> SPI1_SCK
+         */
+        GPIO_InitStruct.Pin = GPIO_PIN_6 | GPIO_PIN_7;
+        GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+        GPIO_InitStruct.Pull = GPIO_NOPULL;
+        GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+        GPIO_InitStruct.Alternate = GPIO_AF5_SPI1;
+        HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+        GPIO_InitStruct.Pin = GPIO_PIN_3;
+        GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+        GPIO_InitStruct.Pull = GPIO_NOPULL;
+        GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
+        GPIO_InitStruct.Alternate = GPIO_AF5_SPI1;
+        HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+        /* SPI1 DMA Init */
+        /* SPI1_RX Init */
+        hdma_spi1_rx.Instance = DMA1_Channel2;
+        hdma_spi1_rx.Init.Request = DMA_REQUEST_1;
+        hdma_spi1_rx.Init.Direction = DMA_PERIPH_TO_MEMORY;
+        hdma_spi1_rx.Init.PeriphInc = DMA_PINC_DISABLE;
+        hdma_spi1_rx.Init.MemInc = DMA_MINC_ENABLE;
+        hdma_spi1_rx.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
+        hdma_spi1_rx.Init.MemDataAlignment = DMA_MDATAALIGN_BYTE;
+        hdma_spi1_rx.Init.Mode = DMA_NORMAL;
+        hdma_spi1_rx.Init.Priority = DMA_PRIORITY_LOW;
+        if (HAL_DMA_Init(&hdma_spi1_rx) != HAL_OK) {
+            while(1);
+        }
+        __HAL_LINKDMA(spiHandle, hdmarx, hdma_spi1_rx);
+
+        /* SPI1_TX Init */
+        hdma_spi1_tx.Instance = DMA1_Channel3;
+        hdma_spi1_tx.Init.Request = DMA_REQUEST_1;
+        hdma_spi1_tx.Init.Direction = DMA_MEMORY_TO_PERIPH;
+        hdma_spi1_tx.Init.PeriphInc = DMA_PINC_DISABLE;
+        hdma_spi1_tx.Init.MemInc = DMA_MINC_ENABLE;
+        hdma_spi1_tx.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
+        hdma_spi1_tx.Init.MemDataAlignment = DMA_MDATAALIGN_BYTE;
+        hdma_spi1_tx.Init.Mode = DMA_NORMAL;
+        hdma_spi1_tx.Init.Priority = DMA_PRIORITY_LOW;
+        if (HAL_DMA_Init(&hdma_spi1_tx) != HAL_OK) {
+            while(1);
+        }
+        __HAL_LINKDMA(spiHandle, hdmatx, hdma_spi1_tx);
+
+        /* SPI1 interrupt Init */
+        HAL_NVIC_SetPriority(SPI1_IRQn, SYSTICK_INT_PRIORITY - 2U, 0);
+        HAL_NVIC_EnableIRQ(SPI1_IRQn);
+    }
+}
+
+/**
+  * @brief  DeInitialize the SPI MSP
+  * @param  None
+  * @retval None
+  */
+void HAL_SPI_MspDeInit(SPI_HandleTypeDef* spiHandle) {
+    if(SPI1 == spiHandle->Instance) {
+        /* Peripheral clock disable */
+        __HAL_RCC_SPI1_CLK_DISABLE();
+
+        /* SPI1 GPIO UnConfiguration
+           PA6 -> SPI1_MISO
+           PA7 -> SPI1_MOSI
+           PB3 (JTDO-TRACESWO) -> SPI1_SCK
+         */
+        HAL_GPIO_DeInit(GPIOA, GPIO_PIN_6 | GPIO_PIN_7);
+        HAL_GPIO_DeInit(GPIOB, GPIO_PIN_3);
+
+        /* SPI1 DMA DeInit */
+        HAL_DMA_DeInit(spiHandle->hdmarx);
+        HAL_DMA_DeInit(spiHandle->hdmatx);
+
+        /* SPI1 interrupt Deinit */
+        HAL_NVIC_DisableIRQ(SPI1_IRQn);
     }
 }
 
