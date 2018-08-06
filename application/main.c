@@ -310,27 +310,25 @@ void HAL_SYSTICK_Callback(void) {
     }
 }
 
-#ifdef USE_FULL_ASSERT
-/**
-  * @brief  Reports the name of the source file and the source line number
-  *         where the assert_param error has occurred.
-  * @param  file: pointer to the source file name
-  * @param  line: assert_param error line source number
-  * @retval None
-  */
-void assert_failed(char *file, uint32_t line) {
-    /* User can add his own implementation to report the file name and the line
-       number.
-       ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line)
-    */
-    UNUSED(file);
-    UNUSED(line);
+#if defined(USE_FULL_ASSERT) || defined(configASSERT)
+inline static
+void sys_suspend(void) {
+    GPIOA->BRR = (uint32_t) GPIO_PIN_5;
 
-    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_SET);
-
-    /* Infinite loop */
     while(1);
 }
-#endif
+
+void hal_assert_failed(void) {
+    __disable_irq();
+
+    sys_suspend();
+}
+
+void os_assert_failed(void) {
+    taskDISABLE_INTERRUPTS();
+
+    sys_suspend();
+}
+#endif /* assert */
 
 /******************************** END OF FILE *********************************/

@@ -95,7 +95,8 @@ extern uint32_t SystemCoreClock;
 
 /* Normal assert() semantics without relying on the provision of an assert.h
    header file. */
-#define configASSERT( x ) if( ( x ) == 0UL ) { taskDISABLE_INTERRUPTS(); for( ;; ); }
+#define configASSERT( x ) if( ( x ) == 0UL ) { os_assert_failed(); }
+void os_assert_failed(void);
 
 /* FreeRTOS MPU specific definitions. */
 #define configINCLUDE_APPLICATION_DEFINED_PRIVILEGED_FUNCTIONS 0

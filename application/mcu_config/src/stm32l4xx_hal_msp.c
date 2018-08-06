@@ -129,7 +129,7 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef *huart) {
         /* Peripheral clock disable */
         __HAL_RCC_USART2_CLK_DISABLE();
 
-        /* USART2 GPIO Configuration
+        /* USART2 GPIO UnConfiguration
            PA2 -> USART2_TX
            PA3 -> USART2_RX
          */
