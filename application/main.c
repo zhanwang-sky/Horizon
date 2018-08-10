@@ -18,6 +18,7 @@
 #include "timers.h"
 
 /* Global variables ----------------------------------------------------------*/
+I2C_HandleTypeDef hi2c1;
 UART_HandleTypeDef huart2;
 
 /* Global function prototypes ------------------------------------------------*/
@@ -28,12 +29,14 @@ void xPortSysTickHandler( void );
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
 SemaphoreHandle_t xSem_uartTxCplt;
+SemaphoreHandle_t xSem_b1Event;
 TimerHandle_t xTimer_blink;
 
 /* Private function prototypes -----------------------------------------------*/
 static void SystemClock_Config(void);
 void MX_GPIO_Init(void);
 void MX_DMA_Init(void);
+void MX_I2C1_Init(void);
 void MX_USART2_UART_Init(void);
 void blinkLED(void *pvParameters);
 void printHello(void *pvParameters);
@@ -63,6 +66,7 @@ int main(void) {
     /* Add your application code here */
     MX_GPIO_Init();
     MX_DMA_Init();
+    MX_I2C1_Init();
     MX_USART2_UART_Init();
 
     // test HAL_Delay();
@@ -71,6 +75,8 @@ int main(void) {
     // This semaphore is used for indicating whether UART tranmission is done.
     // it will be given in UART2 cpltCallback and tested in task printHello.
     xSem_uartTxCplt = xSemaphoreCreateBinary();
+
+    xSem_b1Event = xSemaphoreCreateBinary();
 
     xTimer_blink = xTimerCreate("blinkLED",
                                 pdMS_TO_TICKS(1000),
@@ -121,11 +127,12 @@ int main(void) {
 static void SystemClock_Config(void) {
     RCC_OscInitTypeDef RCC_OscInitStruct;
     RCC_ClkInitTypeDef RCC_ClkInitStruct;
+    RCC_PeriphCLKInitTypeDef PeriphClkInit;
 
     /* Initializes the CPU, AHB and APB busses clocks */
     RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
     RCC_OscInitStruct.HSIState = RCC_HSI_ON;
-    RCC_OscInitStruct.HSICalibrationValue = 16;
+    RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
     RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
     RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
     RCC_OscInitStruct.PLL.PLLM = 1;
@@ -145,6 +152,13 @@ static void SystemClock_Config(void) {
     RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
     RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
     if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_4) != HAL_OK) {
+        while(1);
+    }
+
+    PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USART2 | RCC_PERIPHCLK_I2C1;
+    PeriphClkInit.Usart2ClockSelection = RCC_USART2CLKSOURCE_PCLK1;
+    PeriphClkInit.I2c1ClockSelection = RCC_I2C1CLKSOURCE_PCLK1;
+    if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK) {
         while(1);
     }
 
@@ -173,11 +187,12 @@ void MX_GPIO_Init(void) {
 
     /* GPIO Ports Clock Enable */
     __HAL_RCC_GPIOA_CLK_ENABLE();
+    __HAL_RCC_GPIOB_CLK_ENABLE();
     __HAL_RCC_GPIOC_CLK_ENABLE();
 
+    /* GPIOA configuration */
     /* Configure GPIO pin Output Level */
     HAL_GPIO_WritePin(GPIOA, GPIO_PIN_5, GPIO_PIN_RESET);
-
     /* Configure GPIO pin: PA5(LD2-LED) */
     GPIO_InitStruct.Pin = GPIO_PIN_5;
     GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
@@ -185,7 +200,13 @@ void MX_GPIO_Init(void) {
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
-    /*Configure GPIO pin : PC13(B1-USER) */
+    /* GPIOC configuration */
+    /* Configure GPIO pin: PC9(MPU_INT) */
+    GPIO_InitStruct.Pin = GPIO_PIN_9;
+    GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+    GPIO_InitStruct.Pull = GPIO_PULLDOWN;
+    HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+    /* Configure GPIO pin: PC13(B1-USER) */
     GPIO_InitStruct.Pin = GPIO_PIN_13;
     GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
@@ -196,9 +217,15 @@ void MX_GPIO_Init(void) {
     HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
 }
 
+/**
+  * @brief  DMA Initiation function
+  * @param  None
+  * @retval None
+  */
 void MX_DMA_Init(void) {
     /* DMA controller clock enable */
     __HAL_RCC_DMA1_CLK_ENABLE();
+    __HAL_RCC_DMA2_CLK_ENABLE();
 
     /* DMA1_Channel6_IRQn interrupt configuration */
     HAL_NVIC_SetPriority(DMA1_Channel6_IRQn, SYSTICK_INT_PRIORITY - 2U, 0);
@@ -206,6 +233,42 @@ void MX_DMA_Init(void) {
     /* DMA1_Channel7_IRQn interrupt configuration */
     HAL_NVIC_SetPriority(DMA1_Channel7_IRQn, SYSTICK_INT_PRIORITY - 2U, 0);
     HAL_NVIC_EnableIRQ(DMA1_Channel7_IRQn);
+    /* DMA2_Channel6_IRQn interrupt configuration */
+    HAL_NVIC_SetPriority(DMA2_Channel6_IRQn, SYSTICK_INT_PRIORITY - 2U, 0);
+    HAL_NVIC_EnableIRQ(DMA2_Channel6_IRQn);
+    /* DMA2_Channel7_IRQn interrupt configuration */
+    HAL_NVIC_SetPriority(DMA2_Channel7_IRQn, SYSTICK_INT_PRIORITY - 2U, 0);
+    HAL_NVIC_EnableIRQ(DMA2_Channel7_IRQn);
+}
+
+/**
+  * @brief  I2C1 Initiation function
+  * @param  None
+  * @retval None
+  */
+void MX_I2C1_Init(void) {
+    hi2c1.Instance = I2C1;
+    hi2c1.Init.Timing = 0x00702991;
+    hi2c1.Init.OwnAddress1 = 0;
+    hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
+    hi2c1.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
+    hi2c1.Init.OwnAddress2 = 0;
+    hi2c1.Init.OwnAddress2Masks = I2C_OA2_NOMASK;
+    hi2c1.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
+    hi2c1.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
+    if (HAL_I2C_Init(&hi2c1) != HAL_OK) {
+        while(1);
+    }
+
+    /* Configure Analogue filter */
+    if (HAL_I2CEx_ConfigAnalogFilter(&hi2c1, I2C_ANALOGFILTER_ENABLE) != HAL_OK) {
+        while(1);
+    }
+
+    /* Configure Digital filter */
+    if (HAL_I2CEx_ConfigDigitalFilter(&hi2c1, 0) != HAL_OK) {
+        while(1);
+    }
 }
 
 /**
@@ -234,28 +297,14 @@ void blinkLED(TimerHandle_t xTimer) {
 }
 
 void printHello(void *pvParameters) {
+    static uint8_t i2cBuf[1] = { 0 };
     static char uartTxBuf[128] = { 0 };
-    TickType_t xLastWakeTime;
-
-    // Initialise the xLastWakeTime variable with the current time.
-    xLastWakeTime = xTaskGetTickCount();
 
      while (1) {
-         snprintf(uartTxBuf, sizeof(uartTxBuf), "Hello world! (using blocking mode)\r\n");
-         configASSERT(HAL_OK == HAL_UART_Transmit(&huart2, (uint8_t *) uartTxBuf, strlen(uartTxBuf), 10));
-         vTaskDelayUntil(&xLastWakeTime, (TickType_t) pdMS_TO_TICKS(500));
-
-         snprintf(uartTxBuf, sizeof(uartTxBuf), "Hello world! (using interrupt mode)\r\n");
-         HAL_UART_Transmit_IT(&huart2, (uint8_t *) uartTxBuf, strlen(uartTxBuf));
-         // waiting for tranmission complete, timeout is 10ms
-         configASSERT(pdTRUE == xSemaphoreTake(xSem_uartTxCplt, pdMS_TO_TICKS(10)));
-         vTaskDelayUntil(&xLastWakeTime, (TickType_t) pdMS_TO_TICKS(1000));
-
-         snprintf(uartTxBuf, sizeof(uartTxBuf), "Hello world! (using DMA mode)\r\n");
-         HAL_UART_Transmit_DMA(&huart2, (uint8_t *) uartTxBuf, strlen(uartTxBuf));
-         // waiting for tranmission complete, timeout is 10ms
-         configASSERT(pdTRUE == xSemaphoreTake(xSem_uartTxCplt, pdMS_TO_TICKS(10)));
-         vTaskDelayUntil(&xLastWakeTime, (TickType_t) pdMS_TO_TICKS(1500));
+         configASSERT(pdTRUE == xSemaphoreTake(xSem_b1Event, portMAX_DELAY));
+         HAL_I2C_Mem_Read(&hi2c1, 0xD0, 0x75, I2C_MEMADD_SIZE_8BIT, i2cBuf, 1, 3);
+         snprintf(uartTxBuf, sizeof(uartTxBuf), "0x%02x\r\n", i2cBuf[0]);
+         HAL_UART_Transmit(&huart2, (uint8_t *) uartTxBuf, strlen(uartTxBuf), 10);
      }
 }
 
@@ -281,6 +330,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
     if (GPIO_PIN_13 == GPIO_Pin) {
         xBlinkPeriod = (xBlinkPeriod == 1000) ? 100 : 1000;
         xTimerChangePeriodFromISR(xTimer_blink, pdMS_TO_TICKS(xBlinkPeriod), NULL);
+        xSemaphoreGiveFromISR(xSem_b1Event, NULL);
     }
 }
 

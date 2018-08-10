@@ -14,6 +14,8 @@
 /* Global variables ----------------------------------------------------------*/
 DMA_HandleTypeDef hdma_usart2_rx;
 DMA_HandleTypeDef hdma_usart2_tx;
+DMA_HandleTypeDef hdma_i2c1_rx;
+DMA_HandleTypeDef hdma_i2c1_tx;
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
@@ -141,6 +143,95 @@ void HAL_UART_MspDeInit(UART_HandleTypeDef *huart) {
 
         /* USART2 interrupt Deinit */
         HAL_NVIC_DisableIRQ(USART2_IRQn);
+    }
+}
+
+/**
+  * @brief  Initialize the I2C MSP
+  * @param  None
+  * @retval None
+  */
+void HAL_I2C_MspInit(I2C_HandleTypeDef* i2cHandle) {
+    GPIO_InitTypeDef GPIO_InitStruct;
+
+    if(I2C1 == i2cHandle->Instance) {
+        /* I2C1 clock enable */
+        __HAL_RCC_I2C1_CLK_ENABLE();
+
+        /* I2C1 GPIO Configuration
+           PB8 -> I2C1_SCL
+           PB9 -> I2C1_SDA
+         */
+        GPIO_InitStruct.Pin = GPIO_PIN_8 | GPIO_PIN_9;
+        GPIO_InitStruct.Mode = GPIO_MODE_AF_OD;
+        GPIO_InitStruct.Pull = GPIO_PULLUP;
+        GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_MEDIUM;
+        GPIO_InitStruct.Alternate = GPIO_AF4_I2C1;
+        HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+        /* I2C1 DMA Init */
+        /* I2C1_RX Init */
+        hdma_i2c1_rx.Instance = DMA2_Channel6;
+        hdma_i2c1_rx.Init.Request = DMA_REQUEST_5;
+        hdma_i2c1_rx.Init.Direction = DMA_PERIPH_TO_MEMORY;
+        hdma_i2c1_rx.Init.PeriphInc = DMA_PINC_DISABLE;
+        hdma_i2c1_rx.Init.MemInc = DMA_MINC_ENABLE;
+        hdma_i2c1_rx.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
+        hdma_i2c1_rx.Init.MemDataAlignment = DMA_MDATAALIGN_BYTE;
+        hdma_i2c1_rx.Init.Mode = DMA_NORMAL;
+        hdma_i2c1_rx.Init.Priority = DMA_PRIORITY_LOW;
+        if (HAL_DMA_Init(&hdma_i2c1_rx) != HAL_OK) {
+            while(1);
+        }
+        __HAL_LINKDMA(i2cHandle, hdmarx, hdma_i2c1_rx);
+
+        /* I2C1_TX Init */
+        hdma_i2c1_tx.Instance = DMA2_Channel7;
+        hdma_i2c1_tx.Init.Request = DMA_REQUEST_5;
+        hdma_i2c1_tx.Init.Direction = DMA_MEMORY_TO_PERIPH;
+        hdma_i2c1_tx.Init.PeriphInc = DMA_PINC_DISABLE;
+        hdma_i2c1_tx.Init.MemInc = DMA_MINC_ENABLE;
+        hdma_i2c1_tx.Init.PeriphDataAlignment = DMA_PDATAALIGN_BYTE;
+        hdma_i2c1_tx.Init.MemDataAlignment = DMA_MDATAALIGN_BYTE;
+        hdma_i2c1_tx.Init.Mode = DMA_NORMAL;
+        hdma_i2c1_tx.Init.Priority = DMA_PRIORITY_LOW;
+        if (HAL_DMA_Init(&hdma_i2c1_tx) != HAL_OK) {
+            while(1);
+        }
+        __HAL_LINKDMA(i2cHandle, hdmatx, hdma_i2c1_tx);
+
+        /* I2C1 interrupt Init */
+        HAL_NVIC_SetPriority(I2C1_EV_IRQn, SYSTICK_INT_PRIORITY - 2U, 0);
+        HAL_NVIC_EnableIRQ(I2C1_EV_IRQn);
+        HAL_NVIC_SetPriority(I2C1_ER_IRQn, SYSTICK_INT_PRIORITY - 2U, 0);
+        HAL_NVIC_EnableIRQ(I2C1_ER_IRQn);
+    }
+}
+
+/**
+  * @brief  DeInitialize the I2C MSP
+  * @param  None
+  * @retval None
+  */
+void HAL_I2C_MspDeInit(I2C_HandleTypeDef* i2cHandle) {
+    if(I2C1 == i2cHandle->Instance)
+    {
+        /* Peripheral clock disable */
+        __HAL_RCC_I2C1_CLK_DISABLE();
+
+        /* I2C1 GPIO Configuration
+           PB8 -> I2C1_SCL
+           PB9 -> I2C1_SDA
+         */
+        HAL_GPIO_DeInit(GPIOB, GPIO_PIN_8 | GPIO_PIN_9);
+
+        /* I2C1 DMA DeInit */
+        HAL_DMA_DeInit(i2cHandle->hdmarx);
+        HAL_DMA_DeInit(i2cHandle->hdmatx);
+
+        /* I2C1 interrupt Deinit */
+        HAL_NVIC_DisableIRQ(I2C1_EV_IRQn);
+        HAL_NVIC_DisableIRQ(I2C1_ER_IRQn);
     }
 }
 

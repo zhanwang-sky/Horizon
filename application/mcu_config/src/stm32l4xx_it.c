@@ -12,10 +12,13 @@
 #include "stm32l4xx_hal.h"
 
 /* External variables --------------------------------------------------------*/
+extern I2C_HandleTypeDef hi2c1;
 extern UART_HandleTypeDef huart2;
 extern DMA_HandleTypeDef hdma_usart2_rx;
 extern DMA_HandleTypeDef hdma_usart2_tx;
 extern TIM_HandleTypeDef htim7;
+extern DMA_HandleTypeDef hdma_i2c1_rx;
+extern DMA_HandleTypeDef hdma_i2c1_tx;
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
@@ -63,6 +66,33 @@ void DMA1_Channel7_IRQHandler(void) {
 }
 
 /**
+  * @brief  This function handles EXTI line[9:5] interrupts.
+  * @param  None
+  * @retval None
+  */
+void EXTI9_5_IRQHandler(void) {
+    HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_9);
+}
+
+/**
+  * @brief  This function handles I2C1 event interrupt.
+  * @param  None
+  * @retval None
+  */
+void I2C1_EV_IRQHandler(void) {
+    HAL_I2C_EV_IRQHandler(&hi2c1);
+}
+
+/**
+  * @brief  This function handles I2C1 error interrupt.
+  * @param  None
+  * @retval None
+  */
+void I2C1_ER_IRQHandler(void) {
+    HAL_I2C_ER_IRQHandler(&hi2c1);
+}
+
+/**
   * @brief  This function handles UART interrupt request.
   * @param  None
   * @retval None
@@ -87,6 +117,24 @@ void EXTI15_10_IRQHandler(void) {
 */
 void TIM7_IRQHandler(void) {
     HAL_TIM_IRQHandler(&htim7);
+}
+
+/**
+  * @brief  This function handles DMA2 channel6 global interrupt.
+  * @param  None
+  * @retval None
+*/
+void DMA2_Channel6_IRQHandler(void) {
+    HAL_DMA_IRQHandler(&hdma_i2c1_rx);
+}
+
+/**
+  * @brief  This function handles DMA2 channel7 global interrupt.
+  * @param  None
+  * @retval None
+*/
+void DMA2_Channel7_IRQHandler(void) {
+    HAL_DMA_IRQHandler(&hdma_i2c1_tx);
 }
 
 /******************************** END OF FILE *********************************/
