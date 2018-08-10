@@ -74,6 +74,16 @@ extern "C" {
 
 /* ###################### Oscillator Values adaptation ###################### */
 /**
+  * @brief Internal High Speed oscillator (HSI) value.
+  *        This value is used by the RCC HAL module to compute the system
+  *        frequency (when HSI is used as system clock source, directly or
+  *        through the PLL).
+  */
+#if !defined (HSI_VALUE)
+#define HSI_VALUE 16000000U
+#endif /* HSI_VALUE */
+
+/**
   * @brief Adjust the value of External High Speed oscillator (HSE) used in your
   *        application.
   *        This value is used by the RCC HAL module to compute the system
@@ -95,29 +105,6 @@ extern "C" {
 #if !defined (MSI_VALUE)
 #define MSI_VALUE 4000000U
 #endif /* MSI_VALUE */
-
-/**
-  * @brief Internal High Speed oscillator (HSI) value.
-  *        This value is used by the RCC HAL module to compute the system
-  *        frequency (when HSI is used as system clock source, directly or
-  *        through the PLL).
-  */
-#if !defined (HSI_VALUE)
-#define HSI_VALUE 16000000U
-#endif /* HSI_VALUE */
-
-/**
-  * @brief Internal High Speed oscillator (HSI48) value for USB FS, SDMMC and
-  *        RNG.
-  *        This internal oscillator is mainly dedicated to provide a high
-  *        precision clock to the USB peripheral by means of a special Clock
-  *        Recovery System (CRS) circuitry.
-  *        When the CRS is not used, the HSI48 RC oscillator runs on it default
-  *        frequency which is subject to manufacturing process variations.
-  */
-#if !defined (HSI48_VALUE)
-#define HSI48_VALUE 48000000U
-#endif /* HSI48_VALUE */
 
 /**
   * @brief Internal Low Speed oscillator (LSI) value.

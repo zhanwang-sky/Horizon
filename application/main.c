@@ -114,11 +114,11 @@ int main(void) {
   *          + AHB Prescaler       = 1
   *          + APB1 Prescaler      = 1
   *          + APB2 Prescaler      = 1
-  *          + MSI Frequency(Hz)   = 4000000
-  *          + PLL_M               = 1
-  *          + PLL_N               = 10
+  *          + HSI Frequency(Hz)   = 16000000
+  *          + PLL_M               = 2
+  *          + PLL_N               = 20
   *          + PLL_P               = 7
-  *          + PLL_Q               = 2
+  *          + PLL_Q               = 4
   *          + PLL_R               = 2
   *          + Flash Latency(WS)   = 4
   * @param  None
@@ -135,10 +135,10 @@ static void SystemClock_Config(void) {
     RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
     RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
     RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
-    RCC_OscInitStruct.PLL.PLLM = 1;
-    RCC_OscInitStruct.PLL.PLLN = 10;
+    RCC_OscInitStruct.PLL.PLLM = 2;
+    RCC_OscInitStruct.PLL.PLLN = 20;
     RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV7;
-    RCC_OscInitStruct.PLL.PLLQ = RCC_PLLQ_DIV2;
+    RCC_OscInitStruct.PLL.PLLQ = RCC_PLLQ_DIV4;
     RCC_OscInitStruct.PLL.PLLR = RCC_PLLR_DIV2;
     if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK) {
         while(1);
