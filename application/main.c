@@ -284,7 +284,7 @@ void MX_USART2_UART_Init(void) {
     huart2.Init.Parity = UART_PARITY_NONE;
     huart2.Init.Mode = UART_MODE_TX_RX;
     huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-    huart2.Init.OverSampling = UART_OVERSAMPLING_8;
+    huart2.Init.OverSampling = UART_OVERSAMPLING_16;
     huart2.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
     huart2.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
     if (HAL_UART_Init(&huart2) != HAL_OK) {
@@ -299,11 +299,12 @@ void blinkLED(TimerHandle_t xTimer) {
 void printHello(void *pvParameters) {
     static uint8_t i2cBuf[1] = { 0 };
     static char uartTxBuf[128] = { 0 };
+    static uint32_t count = 0;
 
      while (1) {
          configASSERT(pdTRUE == xSemaphoreTake(xSem_b1Event, portMAX_DELAY));
          HAL_I2C_Mem_Read(&hi2c1, 0xD0, 0x75, I2C_MEMADD_SIZE_8BIT, i2cBuf, 1, 3);
-         snprintf(uartTxBuf, sizeof(uartTxBuf), "0x%02x\r\n", i2cBuf[0]);
+         snprintf(uartTxBuf, sizeof(uartTxBuf), "%03d: 0x%02x\r\n", ++count, i2cBuf[0]);
          HAL_UART_Transmit(&huart2, (uint8_t *) uartTxBuf, strlen(uartTxBuf), 10);
      }
 }
