@@ -337,7 +337,7 @@
               <MiscControls></MiscControls>
               <Define>USE_HAL_DRIVER, STM32L476xx</Define>
               <Undefine></Undefine>
-              <IncludePath>..\application;..\application\mcu_config\inc;..\drivers\cmsis\inc;..\drivers\cmsis\device\inc;..\drivers\hal\inc;..\FreeRTOS\Source\include;..\FreeRTOS\Source\portable\RVDS\ARM_CM4F</IncludePath>
+              <IncludePath>..\application;..\application\imu;..\application\mcu_config\inc;..\drivers\cmsis\inc;..\drivers\cmsis\device\inc;..\drivers\hal\inc;..\FreeRTOS\Source\include;..\FreeRTOS\Source\portable\RVDS\ARM_CM4F</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -400,6 +400,16 @@
               <FileName>stm32l4xx_it.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\application\mcu_config\src\stm32l4xx_it.c</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>Application/IMU</GroupName>
+          <Files>
+            <File>
+              <FileName>inv_mpu.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\application\imu\inv_mpu.c</FilePath>
             </File>
           </Files>
         </Group>

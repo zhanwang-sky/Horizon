@@ -12,10 +12,13 @@
 #include <string.h>
 
 #include "stm32l4xx_hal.h"
+
 #include "FreeRTOS.h"
 #include "task.h"
 #include "semphr.h"
 #include "timers.h"
+
+#include "inv_mpu.h"
 
 /* Global variables ----------------------------------------------------------*/
 I2C_HandleTypeDef hi2c1;
@@ -28,8 +31,10 @@ void xPortSysTickHandler( void );
 /* Private define ------------------------------------------------------------*/
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
-SemaphoreHandle_t xSem_uartTxCplt;
+SemaphoreHandle_t xSem_i2c1RxCplt;
+SemaphoreHandle_t xSem_uart2TxCplt;
 SemaphoreHandle_t xSem_b1Event;
+SemaphoreHandle_t xSem_mpuEvent;
 TimerHandle_t xTimer_blink;
 
 /* Private function prototypes -----------------------------------------------*/
@@ -70,20 +75,27 @@ int main(void) {
     MX_USART2_UART_Init();
 
     // test HAL_Delay();
-    HAL_Delay(3000);
+    HAL_Delay(100);
 
-    // This semaphore is used for indicating whether UART tranmission is done.
-    // it will be given in UART2 cpltCallback and tested in task printHello.
-    xSem_uartTxCplt = xSemaphoreCreateBinary();
+    // Initialize MPU
+    mpu_reset();
+    mpu_set_gyro_fsr(1000);
+    mpu_set_accel_fsr(8);
+    mpu_set_lpf(5);
+    mpu_set_sample_rate(4);
+    mpu_set_int(1);
 
+    // FreeRTOS
+    xSem_i2c1RxCplt = xSemaphoreCreateBinary();
+    xSem_uart2TxCplt = xSemaphoreCreateBinary();
     xSem_b1Event = xSemaphoreCreateBinary();
+    xSem_mpuEvent = xSemaphoreCreateBinary();
 
     xTimer_blink = xTimerCreate("blinkLED",
                                 pdMS_TO_TICKS(1000),
                                 pdTRUE,
                                 NULL,
                                 blinkLED);
-
     xTimerStart(xTimer_blink, 0);
 
     xTaskCreate(printHello,
@@ -213,6 +225,8 @@ void MX_GPIO_Init(void) {
     HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
     /* EXTI interrupt init */
+    HAL_NVIC_SetPriority(EXTI9_5_IRQn, SYSTICK_INT_PRIORITY - 1U, 0);
+    HAL_NVIC_EnableIRQ(EXTI9_5_IRQn);
     HAL_NVIC_SetPriority(EXTI15_10_IRQn, SYSTICK_INT_PRIORITY - 1U, 0);
     HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
 }
@@ -297,16 +311,45 @@ void blinkLED(TimerHandle_t xTimer) {
 }
 
 void printHello(void *pvParameters) {
-    static uint8_t i2cBuf[1] = { 0 };
+    static uint8_t i2cBuf[2] = { 0 };
     static char uartTxBuf[128] = { 0 };
-    static uint32_t count = 0;
+    static uint8_t count = 0;
 
      while (1) {
-         configASSERT(pdTRUE == xSemaphoreTake(xSem_b1Event, portMAX_DELAY));
-         HAL_I2C_Mem_Read(&hi2c1, 0xD0, 0x75, I2C_MEMADD_SIZE_8BIT, i2cBuf, 1, 3);
-         snprintf(uartTxBuf, sizeof(uartTxBuf), "%03d: 0x%02x\r\n", ++count, i2cBuf[0]);
-         HAL_UART_Transmit(&huart2, (uint8_t *) uartTxBuf, strlen(uartTxBuf), 10);
-     }
+        configASSERT(pdTRUE == xSemaphoreTake(xSem_mpuEvent, portMAX_DELAY));
+        ++count;
+        if (1 == count) {
+            continue;
+        } else if (2 == count) {
+            HAL_I2C_Mem_Read_DMA(&hi2c1, 0xD0, 58, I2C_MEMADD_SIZE_8BIT, i2cBuf, 1);
+            configASSERT(pdTRUE == xSemaphoreTake(xSem_i2c1RxCplt, pdMS_TO_TICKS(10)));
+            snprintf(uartTxBuf, sizeof(uartTxBuf), "02: %02X\r\n", i2cBuf[0]);
+            HAL_UART_Transmit_DMA(&huart2, (uint8_t *) uartTxBuf, strlen(uartTxBuf));
+            configASSERT(pdTRUE == xSemaphoreTake(xSem_uart2TxCplt, pdMS_TO_TICKS(10)));
+        } else {
+            HAL_I2C_Mem_Read_DMA(&hi2c1, 0xD0, 58, I2C_MEMADD_SIZE_8BIT, i2cBuf, 1);
+            configASSERT(pdTRUE == xSemaphoreTake(xSem_i2c1RxCplt, pdMS_TO_TICKS(10)));
+            HAL_I2C_Mem_Read_DMA(&hi2c1, 0xD0, 58, I2C_MEMADD_SIZE_8BIT, i2cBuf + 1, 1);
+            configASSERT(pdTRUE == xSemaphoreTake(xSem_i2c1RxCplt, pdMS_TO_TICKS(10)));
+            snprintf(uartTxBuf, sizeof(uartTxBuf), "03: %02X %02X\r\n", i2cBuf[0], i2cBuf[1]);
+            HAL_UART_Transmit_DMA(&huart2, (uint8_t *) uartTxBuf, strlen(uartTxBuf));
+            configASSERT(pdTRUE == xSemaphoreTake(xSem_uart2TxCplt, pdMS_TO_TICKS(10)));
+            count = 0;
+        }
+    }
+}
+
+/**
+  * @brief  Memory end of read transfer callback.
+  * @param  hi2c I2C handle.
+  * @retval None
+  */
+void HAL_I2C_MemRxCpltCallback(I2C_HandleTypeDef *hi2c) {
+    if (xTaskGetSchedulerState() != taskSCHEDULER_NOT_STARTED) {
+        if (I2C1 == hi2c->Instance) {
+            xSemaphoreGiveFromISR(xSem_i2c1RxCplt, NULL);
+        }
+    }
 }
 
 /**
@@ -315,8 +358,10 @@ void printHello(void *pvParameters) {
   * @retval None
   */
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) {
-    if (USART2 == huart->Instance) {
-        xSemaphoreGiveFromISR(xSem_uartTxCplt, NULL);
+    if (xTaskGetSchedulerState() != taskSCHEDULER_NOT_STARTED) {
+        if (USART2 == huart->Instance) {
+            xSemaphoreGiveFromISR(xSem_uart2TxCplt, NULL);
+        }
     }
 }
 
@@ -326,12 +371,12 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) {
   * @retval None
   */
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
-    static uint32_t xBlinkPeriod = 1000;
-
-    if (GPIO_PIN_13 == GPIO_Pin) {
-        xBlinkPeriod = (xBlinkPeriod == 1000) ? 100 : 1000;
-        xTimerChangePeriodFromISR(xTimer_blink, pdMS_TO_TICKS(xBlinkPeriod), NULL);
-        xSemaphoreGiveFromISR(xSem_b1Event, NULL);
+    if (xTaskGetSchedulerState() != taskSCHEDULER_NOT_STARTED) {
+        if (GPIO_PIN_9 == GPIO_Pin) {
+            xSemaphoreGiveFromISR(xSem_mpuEvent, NULL);
+        } else if (GPIO_PIN_13 == GPIO_Pin) {
+            xSemaphoreGiveFromISR(xSem_b1Event, NULL);
+        }
     }
 }
 
