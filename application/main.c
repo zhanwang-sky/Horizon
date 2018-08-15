@@ -311,7 +311,7 @@ void blinkLED(TimerHandle_t xTimer) {
 }
 
 void printHello(void *pvParameters) {
-    static uint8_t i2cBuf[2] = { 0 };
+    static uint8_t i2cBuf[3] = { 0 };
     static char uartTxBuf[128] = { 0 };
     static uint8_t count = 0;
 
@@ -327,11 +327,11 @@ void printHello(void *pvParameters) {
             HAL_UART_Transmit_DMA(&huart2, (uint8_t *) uartTxBuf, strlen(uartTxBuf));
             configASSERT(pdTRUE == xSemaphoreTake(xSem_uart2TxCplt, pdMS_TO_TICKS(10)));
         } else {
-            HAL_I2C_Mem_Read_DMA(&hi2c1, 0xD0, 58, I2C_MEMADD_SIZE_8BIT, i2cBuf, 1);
+            HAL_I2C_Mem_Read_DMA(&hi2c1, 0xD0, 65, I2C_MEMADD_SIZE_8BIT, i2cBuf, 2);
             configASSERT(pdTRUE == xSemaphoreTake(xSem_i2c1RxCplt, pdMS_TO_TICKS(10)));
-            HAL_I2C_Mem_Read_DMA(&hi2c1, 0xD0, 58, I2C_MEMADD_SIZE_8BIT, i2cBuf + 1, 1);
+            HAL_I2C_Mem_Read_DMA(&hi2c1, 0xD0, 58, I2C_MEMADD_SIZE_8BIT, i2cBuf + 2, 1);
             configASSERT(pdTRUE == xSemaphoreTake(xSem_i2c1RxCplt, pdMS_TO_TICKS(10)));
-            snprintf(uartTxBuf, sizeof(uartTxBuf), "03: %02X %02X\r\n", i2cBuf[0], i2cBuf[1]);
+            snprintf(uartTxBuf, sizeof(uartTxBuf), "03: %02X %02X %02X\r\n", i2cBuf[0], i2cBuf[1], i2cBuf[2]);
             HAL_UART_Transmit_DMA(&huart2, (uint8_t *) uartTxBuf, strlen(uartTxBuf));
             configASSERT(pdTRUE == xSemaphoreTake(xSem_uart2TxCplt, pdMS_TO_TICKS(10)));
             count = 0;

@@ -84,59 +84,57 @@ extern I2C_HandleTypeDef hi2c1;
 #define INV_MPU_REG_ZA_OFFSET_L       (0x7E)
 
 /* bits defined in CONFIG */
-#define INV_MPU_BIT_FIFO_MODE       (0x40)
-#define INV_MPU_MASK_EXT_SYNC_SET   (0x38)
-#define INV_MPU_MASK_DLPF_CFG       (0x07)
+#define INV_MPU_BIT_FIFO_MODE         (0x40)
+#define INV_MPU_MASK_EXT_SYNC_SET     (0x38)
+#define INV_MPU_MASK_DLPF_CFG         (0x07)
 
 /* bits defined in GYRO_CONFIG */
-#define INV_MPU_BIT_XGYRO_Cten      (0x80)
-#define INV_MPU_BIT_YGYRO_Cten      (0x40)
-#define INV_MPU_BIT_ZGYRO_Cten      (0x20)
-#define INV_MPU_MASK_GYRO_FS_SEL    (0x18)
-#define INV_MPU_MASK_Fchoice_b      (0x03)
+#define INV_MPU_BIT_XGYRO_Cten        (0x80)
+#define INV_MPU_BIT_YGYRO_Cten        (0x40)
+#define INV_MPU_BIT_ZGYRO_Cten        (0x20)
+#define INV_MPU_MASK_GYRO_FS_SEL      (0x18)
+#define INV_MPU_MASK_Fchoice_b        (0x03)
 
 /* bits defined in ACCEL_CONFIG */
-#define INV_MPU_BIT_ax_st_en        (0x80)
-#define INV_MPU_BIT_ay_st_en        (0x40)
-#define INV_MPU_BIT_az_st_en        (0x20)
-#define INV_MPU_MASK_ACCEL_FS_SEL   (0x18)
+#define INV_MPU_BIT_ax_st_en          (0x80)
+#define INV_MPU_BIT_ay_st_en          (0x40)
+#define INV_MPU_BIT_az_st_en          (0x20)
+#define INV_MPU_MASK_ACCEL_FS_SEL     (0x18)
 
 /* bits defined in ACCEL_CONFIG2 */
-#define INV_MPU_BIT_accel_fchoice_b (0x04)
-#define INV_MPU_MASK_A_DLPFCFG      (0x07)
+#define INV_MPU_BIT_accel_fchoice_b   (0x04)
+#define INV_MPU_MASK_A_DLPFCFG        (0x07)
 
 /* bits defined in INT_PIN_CFG */
-#define INV_MPU_BIT_BYPASS_EN       (0x01)
+#define INV_MPU_BIT_INT_ANYRD_2CLEAR  (0x10)
+#define INV_MPU_BIT_BYPASS_EN         (0x01)
 
 /* bits defined in INT_ENABLE */
-#define INV_MPU_BIT_INT_ENABLE      (0x01)
+#define INV_MPU_BIT_RAW_RDY_EN        (0x01)
 
 /* bits defined in USER_CTRL */
-#define INV_MPU_BIT_FIFO_EN         (0x40)
-#define INV_MPU_BIT_I2C_MST_EN      (0x20)
-#define INV_MPU_BIT_I2C_IF_DIS      (0x10)
-#define INV_MPU_BIT_FIFO_RST        (0x04)
-#define INV_MPU_BIT_I2C_MST_RST     (0x02)
-#define INV_MPU_BIT_SIG_COND_RST    (0X01)
+#define INV_MPU_BIT_FIFO_EN           (0x40)
+#define INV_MPU_BIT_I2C_MST_EN        (0x20)
+#define INV_MPU_BIT_I2C_IF_DIS        (0x10)
+#define INV_MPU_BIT_FIFO_RST          (0x04)
+#define INV_MPU_BIT_I2C_MST_RST       (0x02)
+#define INV_MPU_BIT_SIG_COND_RST      (0X01)
 
 /* bits defined in PWR_MGMT_1 */
-#define INV_MPU_BIT_H_RESET         (0x80)
-#define INV_MPU_BIT_SLEEP           (0x40)
-#define INV_MPU_BIT_CYCLE           (0x20)
-#define INV_MPU_BIT_GYRO_STANDBY    (0x10)
-#define INV_MPU_BIT_PD_PTAT         (0x08)
-#define INV_MPU_MASK_CLKSEL         (0x07)
+#define INV_MPU_BIT_H_RESET           (0x80)
+#define INV_MPU_BIT_SLEEP             (0x40)
+#define INV_MPU_BIT_CYCLE             (0x20)
+#define INV_MPU_BIT_GYRO_STANDBY      (0x10)
+#define INV_MPU_BIT_PD_PTAT           (0x08)
+#define INV_MPU_MASK_CLKSEL           (0x07)
 
 /* bits defined in PWR_MGMT_2 */
-#define INV_MPU_BIT_DISABLE_XA      (0x20)
-#define INV_MPU_BIT_DISABLE_YA      (0x10)
-#define INV_MPU_BIT_DISABLE_ZA      (0x08)
-#define INV_MPU_BIT_DISABLE_XG      (0x04)
-#define INV_MPU_BIT_DISABLE_YG      (0x02)
-#define INV_MPU_BIT_DISABLE_ZG      (0x01)
-
-
-
+#define INV_MPU_BIT_DISABLE_XA        (0x20)
+#define INV_MPU_BIT_DISABLE_YA        (0x10)
+#define INV_MPU_BIT_DISABLE_ZA        (0x08)
+#define INV_MPU_BIT_DISABLE_XG        (0x04)
+#define INV_MPU_BIT_DISABLE_YG        (0x02)
+#define INV_MPU_BIT_DISABLE_ZG        (0x01)
 
 /******************************************************************************/
 
@@ -166,10 +164,6 @@ extern I2C_HandleTypeDef hi2c1;
 
 /******************************************************************************/
 
-
-
-
-
 /* Private variables ---------------------------------------------------------*/
 /* Private function prototypes -----------------------------------------------*/
 /* Private functions ---------------------------------------------------------*/
@@ -177,15 +171,19 @@ extern I2C_HandleTypeDef hi2c1;
 /* Global functions ----------------------------------------------------------*/
 
 int mpu_set_int(int enable) {
-    uint8_t data;
+    uint8_t data[2];
 
-    HAL_I2C_Mem_Read(&INV_MPU_I2C_HDL, INV_MPU_DEV_ADDR, INV_MPU_REG_INT_ENABLE, I2C_MEMADD_SIZE_8BIT, &data, 1, 10);
+    HAL_I2C_Mem_Read(&INV_MPU_I2C_HDL, INV_MPU_DEV_ADDR, INV_MPU_REG_INT_PIN_CFG, I2C_MEMADD_SIZE_8BIT, &data[0], 1, 10);
+    HAL_I2C_Mem_Read(&INV_MPU_I2C_HDL, INV_MPU_DEV_ADDR, INV_MPU_REG_INT_ENABLE, I2C_MEMADD_SIZE_8BIT, &data[1], 1, 10);
     if (enable != 0) {
-        data |= INV_MPU_BIT_INT_ENABLE;
+        data[0] |= INV_MPU_BIT_INT_ANYRD_2CLEAR;
+        data[1] |= INV_MPU_BIT_RAW_RDY_EN;
     } else {
-        data &= ~INV_MPU_BIT_INT_ENABLE;
+        data[0] &= ~INV_MPU_BIT_INT_ANYRD_2CLEAR;
+        data[1] &= ~INV_MPU_BIT_RAW_RDY_EN;
     }
-    HAL_I2C_Mem_Write(&INV_MPU_I2C_HDL, INV_MPU_DEV_ADDR, INV_MPU_REG_INT_ENABLE, I2C_MEMADD_SIZE_8BIT, &data, 1, 10);
+    HAL_I2C_Mem_Write(&INV_MPU_I2C_HDL, INV_MPU_DEV_ADDR, INV_MPU_REG_INT_PIN_CFG, I2C_MEMADD_SIZE_8BIT, &data[0], 1, 10);
+    HAL_I2C_Mem_Write(&INV_MPU_I2C_HDL, INV_MPU_DEV_ADDR, INV_MPU_REG_INT_ENABLE, I2C_MEMADD_SIZE_8BIT, &data[1], 1, 10);
 
     return 0;
 }
