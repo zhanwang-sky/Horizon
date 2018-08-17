@@ -337,7 +337,7 @@
               <MiscControls></MiscControls>
               <Define>USE_HAL_DRIVER, STM32L476xx</Define>
               <Undefine></Undefine>
-              <IncludePath>..\application;..\application\imu;..\application\mcu_config\inc;..\FreeRTOS\Source\include;..\FreeRTOS\Source\portable\RVDS\ARM_CM4F;..\drivers\cmsis\inc;..\drivers\cmsis\device\st\stm32l4xx\inc;..\drivers\stm32l4xx_hal_driver\inc</IncludePath>
+              <IncludePath>..\application\imu;..\al\mcu\stm32l4xx\inc;..\al\FreeRTOS;..\FreeRTOS\Source\include;..\FreeRTOS\Source\portable\RVDS\ARM_CM4F;..\drivers\cmsis\inc;..\drivers\cmsis\device\st\stm32l4xx\inc;..\drivers\stm32l4xx_hal_driver\inc</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -386,21 +386,6 @@
               <FileType>1</FileType>
               <FilePath>..\application\main.c</FilePath>
             </File>
-            <File>
-              <FileName>stm32l4xx_hal_msp.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\application\mcu_config\src\stm32l4xx_hal_msp.c</FilePath>
-            </File>
-            <File>
-              <FileName>stm32l4xx_hal_timebase_tim.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\application\mcu_config\src\stm32l4xx_hal_timebase_tim.c</FilePath>
-            </File>
-            <File>
-              <FileName>stm32l4xx_it.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\application\mcu_config\src\stm32l4xx_it.c</FilePath>
-            </File>
           </Files>
         </Group>
         <Group>
@@ -410,6 +395,26 @@
               <FileName>inv_mpu.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\application\imu\inv_mpu.c</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>AL/MCU</GroupName>
+          <Files>
+            <File>
+              <FileName>stm32l4xx_hal_msp.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\al\mcu\stm32l4xx\src\stm32l4xx_hal_msp.c</FilePath>
+            </File>
+            <File>
+              <FileName>stm32l4xx_hal_timebase_tim.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\al\mcu\stm32l4xx\src\stm32l4xx_hal_timebase_tim.c</FilePath>
+            </File>
+            <File>
+              <FileName>stm32l4xx_it.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\al\mcu\stm32l4xx\src\stm32l4xx_it.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -535,16 +540,6 @@
               <FileName>stm32l4xx_hal_rcc_ex.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\drivers\stm32l4xx_hal_driver\src\stm32l4xx_hal_rcc_ex.c</FilePath>
-            </File>
-            <File>
-              <FileName>stm32l4xx_hal_spi.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\drivers\stm32l4xx_hal_driver\src\stm32l4xx_hal_spi.c</FilePath>
-            </File>
-            <File>
-              <FileName>stm32l4xx_hal_spi_ex.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\drivers\stm32l4xx_hal_driver\src\stm32l4xx_hal_spi_ex.c</FilePath>
             </File>
             <File>
               <FileName>stm32l4xx_hal_tim.c</FileName>
