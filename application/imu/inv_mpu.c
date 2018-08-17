@@ -170,6 +170,23 @@ extern I2C_HandleTypeDef hi2c1;
 
 /* Global functions ----------------------------------------------------------*/
 
+void mpu_convert_data(uint8_t *buf, uint16_t *data) {
+    data[0] = buf[8] << 8 | buf[9];
+    data[1] = buf[10] << 8 | buf[11];
+    data[2] = buf[12] << 8 | buf[13];
+    data[3] = buf[0] << 8 | buf[1];
+    data[4] = buf[2] << 8 | buf[3];
+    data[5] = buf[4] << 8 | buf[5];
+    data[6] = buf[6] << 8 | buf[7];
+
+    return;
+}
+
+int mpu_read_data_dma(uint8_t *buf) {
+    HAL_I2C_Mem_Read_DMA(&INV_MPU_I2C_HDL, INV_MPU_DEV_ADDR, INV_MPU_REG_ACCEL_XOUT_H, I2C_MEMADD_SIZE_8BIT, buf, 14);
+    return 0;
+}
+
 int mpu_set_int(int enable) {
     uint8_t data[2];
 

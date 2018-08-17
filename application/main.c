@@ -80,9 +80,9 @@ int main(void) {
     // Initialize MPU
     mpu_reset();
     mpu_set_gyro_fsr(1000);
-    mpu_set_accel_fsr(8);
-    mpu_set_lpf(5);
-    mpu_set_sample_rate(4);
+    mpu_set_accel_fsr(4);
+    mpu_set_lpf(12);
+    mpu_set_sample_rate(25);
     mpu_set_int(1);
 
     // FreeRTOS
@@ -311,31 +311,20 @@ void blinkLED(TimerHandle_t xTimer) {
 }
 
 void printHello(void *pvParameters) {
-    static uint8_t i2cBuf[3] = { 0 };
+    static uint8_t mpuBuf[14] = { 0 };
+    static uint16_t mpuData[7] = { 0 };
     static char uartTxBuf[128] = { 0 };
-    static uint8_t count = 0;
 
-     while (1) {
+    while (1) {
         configASSERT(pdTRUE == xSemaphoreTake(xSem_mpuEvent, portMAX_DELAY));
-        ++count;
-        if (1 == count) {
-            continue;
-        } else if (2 == count) {
-            HAL_I2C_Mem_Read_DMA(&hi2c1, 0xD0, 58, I2C_MEMADD_SIZE_8BIT, i2cBuf, 1);
-            configASSERT(pdTRUE == xSemaphoreTake(xSem_i2c1RxCplt, pdMS_TO_TICKS(10)));
-            snprintf(uartTxBuf, sizeof(uartTxBuf), "02: %02X\r\n", i2cBuf[0]);
-            HAL_UART_Transmit_DMA(&huart2, (uint8_t *) uartTxBuf, strlen(uartTxBuf));
-            configASSERT(pdTRUE == xSemaphoreTake(xSem_uart2TxCplt, pdMS_TO_TICKS(10)));
-        } else {
-            HAL_I2C_Mem_Read_DMA(&hi2c1, 0xD0, 65, I2C_MEMADD_SIZE_8BIT, i2cBuf, 2);
-            configASSERT(pdTRUE == xSemaphoreTake(xSem_i2c1RxCplt, pdMS_TO_TICKS(10)));
-            HAL_I2C_Mem_Read_DMA(&hi2c1, 0xD0, 58, I2C_MEMADD_SIZE_8BIT, i2cBuf + 2, 1);
-            configASSERT(pdTRUE == xSemaphoreTake(xSem_i2c1RxCplt, pdMS_TO_TICKS(10)));
-            snprintf(uartTxBuf, sizeof(uartTxBuf), "03: %02X %02X %02X\r\n", i2cBuf[0], i2cBuf[1], i2cBuf[2]);
-            HAL_UART_Transmit_DMA(&huart2, (uint8_t *) uartTxBuf, strlen(uartTxBuf));
-            configASSERT(pdTRUE == xSemaphoreTake(xSem_uart2TxCplt, pdMS_TO_TICKS(10)));
-            count = 0;
-        }
+        mpu_read_data_dma(mpuBuf);
+        configASSERT(pdTRUE == xSemaphoreTake(xSem_i2c1RxCplt, pdMS_TO_TICKS(2)));
+        mpu_convert_data(mpuBuf, mpuData);
+        snprintf(uartTxBuf, sizeof(uartTxBuf),
+                 "\033c%6hd\r\n%6hd\r\n%6hd\r\n%6hd\r\n%6hd\r\n%6hd\r\n%hu\r\n",
+                 mpuData[0], mpuData[1], mpuData[2], mpuData[3], mpuData[4], mpuData[5], mpuData[6]);
+        HAL_UART_Transmit_DMA(&huart2, (uint8_t *) uartTxBuf, strlen(uartTxBuf));
+        configASSERT(pdTRUE == xSemaphoreTake(xSem_uart2TxCplt, pdMS_TO_TICKS(10)));
     }
 }
 
