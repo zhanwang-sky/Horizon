@@ -415,14 +415,14 @@ extern "C" {
 #ifdef USE_FULL_ASSERT
 /**
   * @brief  The assert_param macro is used for function's parameters check.
-  * @param  expr: If expr is false, it calls hal_assert_failed function which
+  * @param  expr: If expr is false, it calls HAL_Assert_Failed function which
   *         disables all interrupts then suspend.
   *         If expr is true, it returns no value.
   * @retval None
   */
-#define assert_param(expr) ((expr) ? (void) 0U : hal_assert_failed())
+#define assert_param(expr) ((expr) ? (void) 0U : HAL_Assert_Failed())
 /* Exported functions ------------------------------------------------------- */
-void hal_assert_failed(void);
+void HAL_Assert_Failed(void);
 #else
 #define assert_param(expr) ((void)0U)
 #endif /* USE_FULL_ASSERT */
