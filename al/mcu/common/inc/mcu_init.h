@@ -1,18 +1,18 @@
 /**
   ******************************************************************************
-  * @file    stm32l4xx_init.c
+  * @file    mcu_init.c
   * @author  Ji Chen
-  * @brief   MCU initialization header fail.
+  * @brief   MCU initialization header file.
   ******************************************************************************
   * @attention
   ******************************************************************************
   */
 
-#ifndef STM32L4XX_INIT_C
-#define STM32L4XX_INIT_C
+#ifndef MCU_INIT_C
+#define MCU_INIT_C
 
 void MX_MCU_Init(void);
 
-#endif /* end of STM32L4XX_INIT_C */
+#endif /* end of MCU_INIT_C */
 
 /******************************** END OF FILE *********************************/
