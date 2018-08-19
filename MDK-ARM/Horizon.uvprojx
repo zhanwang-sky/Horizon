@@ -337,7 +337,7 @@
               <MiscControls></MiscControls>
               <Define>USE_HAL_DRIVER, STM32L476xx</Define>
               <Undefine></Undefine>
-              <IncludePath>..\application\imu;..\al\mcu\common\inc;..\al\mcu\stm32l4xx\inc;..\al\FreeRTOS;..\FreeRTOS\Source\include;..\FreeRTOS\Source\portable\RVDS\ARM_CM4F;..\drivers\cmsis\inc;..\drivers\cmsis\device\st\stm32l4xx\inc;..\drivers\stm32l4xx_hal_driver\inc</IncludePath>
+              <IncludePath>..\application\imu;..\al\FreeRTOS;..\al\gen_api\stm32l4xx\inc;..\al\mcu\stm32l4xx\inc;..\FreeRTOS\Source\include;..\FreeRTOS\Source\portable\RVDS\ARM_CM4F;..\drivers\cmsis\inc;..\drivers\cmsis\device\st\stm32l4xx\inc;..\drivers\stm32l4xx_hal_driver\inc</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -404,7 +404,7 @@
             <File>
               <FileName>mcu_init.c</FileName>
               <FileType>1</FileType>
-              <FilePath>..\al\mcu\common\src\mcu_init.c</FilePath>
+              <FilePath>..\al\mcu\stm32l4xx\src\mcu_init.c</FilePath>
             </File>
             <File>
               <FileName>stm32l4xx_hal_msp.c</FileName>
@@ -420,6 +420,16 @@
               <FileName>stm32l4xx_it.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\al\mcu\stm32l4xx\src\stm32l4xx_it.c</FilePath>
+            </File>
+          </Files>
+        </Group>
+        <Group>
+          <GroupName>AL/GEN_API</GroupName>
+          <Files>
+            <File>
+              <FileName>utilities.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\al\gen_api\stm32l4xx\src\utilities.c</FilePath>
             </File>
           </Files>
         </Group>

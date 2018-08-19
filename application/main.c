@@ -22,9 +22,6 @@
 
 #include "inv_mpu.h"
 
-/* Global function prototypes ------------------------------------------------*/
-void xPortSysTickHandler( void );
-
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
 /* Private macro -------------------------------------------------------------*/
@@ -109,7 +106,7 @@ void printHello(void *pvParameters) {
         configASSERT(pdTRUE == xSemaphoreTake(xSem_i2c1RxCplt, pdMS_TO_TICKS(2)));
         mpu_convert_data(mpuBuf, mpuData);
         snprintf(uartTxBuf, sizeof(uartTxBuf),
-                 "\033c$$$\r\n%6hd\r\n%6hd\r\n%6hd\r\n%6hd\r\n%6hd\r\n%6hd\r\n%hu\r\n",
+                 "\033c@#$\r\n%6hd\r\n%6hd\r\n%6hd\r\n%6hd\r\n%6hd\r\n%6hd\r\n%hu\r\n",
                  mpuData[0], mpuData[1], mpuData[2], mpuData[3], mpuData[4], mpuData[5], mpuData[6]);
         HAL_UART_Transmit_DMA(&huart2, (uint8_t *) uartTxBuf, strlen(uartTxBuf));
         configASSERT(pdTRUE == xSemaphoreTake(xSem_uart2TxCplt, pdMS_TO_TICKS(10)));
@@ -156,31 +153,5 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
         }
     }
 }
-
-/**
-  * @brief  SYSTICK callback.
-  * @param  None
-  * @retval None
-  */
-void HAL_SYSTICK_Callback(void) {
-    if (xTaskGetSchedulerState() != taskSCHEDULER_NOT_STARTED) {
-        xPortSysTickHandler();
-    }
-}
-
-#if defined(configASSERT)
-inline static
-void sys_suspend(void) {
-    GPIOA->BRR = (uint32_t) GPIO_PIN_5;
-
-    while(1);
-}
-
-void os_assert_failed(void) {
-    taskDISABLE_INTERRUPTS();
-
-    sys_suspend();
-}
-#endif /* assert */
 
 /******************************** END OF FILE *********************************/

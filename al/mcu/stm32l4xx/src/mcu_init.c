@@ -12,6 +12,7 @@
   ******************************************************************************
   */
 
+/* Includes ------------------------------------------------------------------*/
 #include "stm32l4xx_hal.h"
 
 /* Global variables ----------------------------------------------------------*/
@@ -243,7 +244,7 @@ void HAL_Assert_Failed(void) {
 }
 #endif /* end of USE_FULL_ASSERT */
 
-/* Interrupt callbacks -------------------------------------------------------*/
+/* Interrupt service routines ------------------------------------------------*/
 /**
   * @brief  Period elapsed callback in non-blocking mode.
   * @note   This function is called when TIM7 interrupt took place, inside
