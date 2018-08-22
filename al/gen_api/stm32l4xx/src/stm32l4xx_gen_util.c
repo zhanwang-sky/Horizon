@@ -1,6 +1,6 @@
 /**
   ******************************************************************************
-  * @file    utilities.c
+  * @file    stm32l4xx_gen_util.c
   * @author  Ji Chen
   * @brief   Provide system level ISR (systick) and FreeRTOS assertion function.
   ******************************************************************************

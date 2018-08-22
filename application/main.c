@@ -13,7 +13,8 @@
 
 #include "stm32l4xx_hal.h"
 
-#include "mcu_init.h"
+#include "stm32l4xx_mcu_init.h"
+#include "stm32l4xx_gen_uart.h"
 
 #include "FreeRTOS.h"
 #include "task.h"
@@ -27,7 +28,6 @@
 /* Private macro -------------------------------------------------------------*/
 /* Private variables ---------------------------------------------------------*/
 SemaphoreHandle_t xSem_i2c1RxCplt;
-SemaphoreHandle_t xSem_uart2TxCplt;
 SemaphoreHandle_t xSem_b1Event;
 SemaphoreHandle_t xSem_mpuEvent;
 TimerHandle_t xTimer_blink;
@@ -58,8 +58,8 @@ int main(void) {
     mpu_set_int(1);
 
     // FreeRTOS
+    gen_uart_init();
     xSem_i2c1RxCplt = xSemaphoreCreateBinary();
-    xSem_uart2TxCplt = xSemaphoreCreateBinary();
     xSem_b1Event = xSemaphoreCreateBinary();
     xSem_mpuEvent = xSemaphoreCreateBinary();
 
@@ -94,8 +94,6 @@ void blinkLED(TimerHandle_t xTimer) {
 }
 
 void printHello(void *pvParameters) {
-    extern UART_HandleTypeDef huart2;
-
     static uint8_t mpuBuf[14] = { 0 };
     static uint16_t mpuData[7] = { 0 };
     static char uartTxBuf[128] = { 0 };
@@ -106,10 +104,9 @@ void printHello(void *pvParameters) {
         configASSERT(pdTRUE == xSemaphoreTake(xSem_i2c1RxCplt, pdMS_TO_TICKS(2)));
         mpu_convert_data(mpuBuf, mpuData);
         snprintf(uartTxBuf, sizeof(uartTxBuf),
-                 "\033c@#$\r\n%6hd\r\n%6hd\r\n%6hd\r\n%6hd\r\n%6hd\r\n%6hd\r\n%hu\r\n",
+                 "\033cG6\r\n%6hd\r\n%6hd\r\n%6hd\r\n%6hd\r\n%6hd\r\n%6hd\r\n%hu\r\n",
                  mpuData[0], mpuData[1], mpuData[2], mpuData[3], mpuData[4], mpuData[5], mpuData[6]);
-        HAL_UART_Transmit_DMA(&huart2, (uint8_t *) uartTxBuf, strlen(uartTxBuf));
-        configASSERT(pdTRUE == xSemaphoreTake(xSem_uart2TxCplt, pdMS_TO_TICKS(10)));
+        gen_uart_write(1, uartTxBuf, strlen(uartTxBuf));
     }
 }
 
@@ -122,19 +119,6 @@ void HAL_I2C_MemRxCpltCallback(I2C_HandleTypeDef *hi2c) {
     if (xTaskGetSchedulerState() != taskSCHEDULER_NOT_STARTED) {
         if (I2C1 == hi2c->Instance) {
             xSemaphoreGiveFromISR(xSem_i2c1RxCplt, NULL);
-        }
-    }
-}
-
-/**
-  * @brief  Tx Transfer completed callback.
-  * @param  huart UART handle.
-  * @retval None
-  */
-void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) {
-    if (xTaskGetSchedulerState() != taskSCHEDULER_NOT_STARTED) {
-        if (USART2 == huart->Instance) {
-            xSemaphoreGiveFromISR(xSem_uart2TxCplt, NULL);
         }
     }
 }

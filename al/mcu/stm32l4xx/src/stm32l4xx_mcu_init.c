@@ -1,6 +1,6 @@
 /**
   ******************************************************************************
-  * @file    mcu_init.c
+  * @file    stm32l4xx_mcu_init.c
   * @author  Ji Chen
   * @brief   Initialize MCU:
   *          configure clocks,
